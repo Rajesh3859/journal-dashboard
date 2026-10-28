@@ -101,12 +101,12 @@ export default function Dashboard() {
       <Grid container spacing={2}>
         {summaryStats.map((stat) => (
           <Grid key={stat.label} item xs={12} sm={6} md={3}>
-            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+            <Card variant="outlined" sx={{ borderRadius: '7px' }}>
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box
                   sx={{
                     p: 1.5,
-                    borderRadius: 2,
+                    borderRadius: '7px',
                     bgcolor: 'action.hover',
                     display: 'flex',
                   }}
@@ -128,7 +128,7 @@ export default function Dashboard() {
       </Grid>
 
       {/* Submissions DataGrid */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: '7px' }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
           Recent Manuscript Submissions
         </Typography>

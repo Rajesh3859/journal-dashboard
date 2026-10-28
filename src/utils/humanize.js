@@ -1,0 +1,163 @@
+// Human-centered formatting utilities for dates, currency, avatars, and labels
+
+export const formatMoney = (minor) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+  }).format(Number(minor || 0) / 100);
+};
+
+export const getInitials = (name = '') => {
+  if (!name) return '??';
+  // Strip common titles like Dr., Prof., Mr., Ms.
+  const cleaned = name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+/i, '').trim();
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return name.slice(0, 2).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const AVATAR_COLORS = [
+  '#2563EB', // Blue
+  '#7C3AED', // Violet
+  '#059669', // Emerald
+  '#D97706', // Amber
+  '#DC2626', // Red
+  '#0891B2', // Cyan
+  '#4F46E5', // Indigo
+  '#9333EA', // Purple
+  '#0D9488', // Teal
+];
+
+export const getAvatarColor = (name = '') => {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+export const formatHumanDate = (dateStr) => {
+  if (!dateStr) return 'No date set';
+  try {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (!year || !month || !day) return dateStr;
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+export const formatRelativeDue = (dueDateStr, dueState) => {
+  if (!dueDateStr) return { text: 'No deadline set', color: 'default', urgency: 'none' };
+
+  if (dueState === 'Paid') {
+    return { text: 'Paid in full', color: 'success', urgency: 'done' };
+  }
+  if (dueState === 'Cancelled') {
+    return { text: 'Cancelled', color: 'default', urgency: 'done' };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [year, month, day] = dueDateStr.split('-').map(Number);
+  const due = new Date(year, month - 1, day);
+  due.setHours(0, 0, 0, 0);
+
+  const diffTime = due.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return { text: 'Due Today', color: 'warning', urgency: 'high' };
+  } else if (diffDays === 1) {
+    return { text: 'Due Tomorrow', color: 'warning', urgency: 'medium' };
+  } else if (diffDays === -1) {
+    return { text: '1 day overdue', color: 'error', urgency: 'critical' };
+  } else if (diffDays < -1) {
+    return { text: `${Math.abs(diffDays)} days overdue`, color: 'error', urgency: 'critical' };
+  } else if (diffDays <= 7) {
+    return { text: `Due in ${diffDays} days (${formatHumanDate(dueDateStr)})`, color: 'info', urgency: 'medium' };
+  } else {
+    return { text: formatHumanDate(dueDateStr), color: 'default', urgency: 'low' };
+  }
+};
+
+export const formatWorkType = (workType = 'journal') => {
+  switch (workType?.toLowerCase()) {
+    case 'journal':
+      return {
+        label: 'Journal Article',
+        key: 'journal',
+        color: 'primary',
+      };
+    case 'conference':
+      return {
+        label: 'Conference Paper',
+        key: 'conference',
+        color: 'info',
+      };
+    case 'patent':
+      return {
+        label: 'Patent Filing',
+        key: 'patent',
+        color: 'secondary',
+      };
+    default:
+      return {
+        label: workType || 'Manuscript',
+        key: 'other',
+        color: 'default',
+      };
+  }
+};
+
+export const calculateProgress = (receivedMinor, dueMinor) => {
+  if (!dueMinor || dueMinor <= 0) return 0;
+  const pct = Math.round((Number(receivedMinor || 0) / Number(dueMinor)) * 100);
+  return Math.min(100, Math.max(0, pct));
+};
+
+export const parseAuthorsList = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .flatMap((item) => {
+        if (typeof item === 'string') {
+          return item.split(/[,;]+/);
+        }
+        if (item && typeof item === 'object' && item.name) {
+          return String(item.name).split(/[,;]+/);
+        }
+        return item != null ? [String(item)] : [];
+      })
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === '[]') return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parseAuthorsList(parsed);
+      }
+    } catch {
+      // not JSON, fallback to split
+    }
+    return trimmed
+      .split(/[,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
