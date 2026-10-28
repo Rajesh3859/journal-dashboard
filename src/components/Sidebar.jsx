@@ -18,7 +18,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import ViewAgendaIcon from '@mui/icons-material/ViewAgenda';
 import SettingsBackupRestoreIcon from '@mui/icons-material/SettingsBackupRestore';
 import { useTheme } from '@mui/material/styles';
 import CircleIcon from '@mui/icons-material/Circle';
@@ -180,60 +179,6 @@ export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
                 </ListItem>
               );
             })}
-          </List>
-
-          <Divider sx={{ my: 1.5 }} />
-
-          <Typography
-            variant="caption"
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              fontWeight: 700,
-              color: 'text.secondary',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              fontSize: '0.75rem',
-            }}
-          >
-            Views
-          </Typography>
-
-          <List sx={{ pt: 0.5 }}>
-            <ListItem disablePadding>
-              <ListItemButton
-                selected={activeTab === 'all'}
-                onClick={() => onSelectTab('all')}
-                sx={{
-                  borderRadius: '7px',
-                  py: 1,
-                  px: 1.5,
-                  '&.Mui-selected': {
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    '& .MuiListItemIcon-root': {
-                      color: 'primary.contrastText',
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 36,
-                    color: activeTab === 'all' ? 'primary.contrastText' : 'text.secondary',
-                  }}
-                >
-                  <ViewAgendaIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="All Sections"
-                  primaryTypographyProps={{
-                    fontSize: '0.94rem',
-                    fontWeight: activeTab === 'all' ? 700 : 500,
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
           </List>
         </Box>
       </Box>

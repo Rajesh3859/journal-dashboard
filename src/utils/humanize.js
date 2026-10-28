@@ -161,3 +161,100 @@ export const parseAuthorsList = (raw) => {
   return [];
 };
 
+export const formatDateTime = (date = new Date()) => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return String(date);
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const formatAuthorsHuman = (raw) => {
+  if (!raw) return 'Lead Author Only';
+  if (Array.isArray(raw)) {
+    const list = raw.map((item) => {
+      if (typeof item === 'string') return item.trim();
+      if (item && typeof item === 'object') {
+        const name = item.name || item.author || '';
+        const role = item.role ? ` (${item.role})` : '';
+        const aff = item.affiliation || item.organization ? ` - ${item.affiliation || item.organization}` : '';
+        return `${name}${role}${aff}`.trim();
+      }
+      return String(item).trim();
+    }).filter(Boolean);
+    return list.length > 0 ? list.join('; ') : 'Lead Author Only';
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === '[]') return 'Lead Author Only';
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return formatAuthorsHuman(parsed);
+      }
+    } catch {
+      // ignore JSON parse error
+    }
+    const parts = trimmed.split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+    return parts.length > 0 ? parts.join('; ') : 'Lead Author Only';
+  }
+  return 'Lead Author Only';
+};
+
+export const getDateRangePresets = () => {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const year = now.getFullYear();
+
+  // This Month
+  const firstDayOfMonth = new Date(year, now.getMonth(), 1).toISOString().slice(0, 10);
+  const lastDayOfMonth = new Date(year, now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+  // Last 30 Days
+  const d30 = new Date(now);
+  d30.setDate(d30.getDate() - 30);
+  const last30Str = d30.toISOString().slice(0, 10);
+
+  // Last 6 Months
+  const d6m = new Date(now);
+  d6m.setMonth(d6m.getMonth() - 6);
+  const last6mStr = d6m.toISOString().slice(0, 10);
+
+  // This Year
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+
+  return [
+    { key: 'all', label: 'All Time (Full Ledger / Dossier)', startDate: '', endDate: '' },
+    { key: 'today', label: 'Today', startDate: todayStr, endDate: todayStr },
+    { key: 'this_month', label: 'This Month', startDate: firstDayOfMonth, endDate: lastDayOfMonth },
+    { key: 'last_30_days', label: 'Last 30 Days', startDate: last30Str, endDate: todayStr },
+    { key: 'last_6_months', label: 'Last 6 Months', startDate: last6mStr, endDate: todayStr },
+    { key: 'this_year', label: `This Year (${year})`, startDate: yearStart, endDate: yearEnd },
+    { key: 'custom', label: 'Custom Date Range…', startDate: '', endDate: '' },
+  ];
+};
+
+export const filterByDateRange = (items = [], dateExtractor, startDate = '', endDate = '') => {
+  if (!items || !Array.isArray(items)) return [];
+  if (!startDate && !endDate) return items;
+
+  return items.filter((item) => {
+    let itemDate = typeof dateExtractor === 'function' ? dateExtractor(item) : item?.date;
+    if (!itemDate) {
+      itemDate = item?.created_at ? String(item.created_at).slice(0, 10) : '';
+    }
+    if (!itemDate) return true; // keep items without dates so they are not silently lost unless strictly bounded
+    
+    // Normalize date to YYYY-MM-DD
+    const cleanDate = String(itemDate).slice(0, 10);
+    if (startDate && cleanDate < startDate) return false;
+    if (endDate && cleanDate > endDate) return false;
+    return true;
+  });
+};
+

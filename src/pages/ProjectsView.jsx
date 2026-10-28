@@ -69,11 +69,13 @@ import {
   formatOrcid,
   getOrcidUrl,
 } from '../utils/security';
-
+import ExcelDateRangeExport from '../components/ExcelDateRangeExport';
+import { exportManuscriptsToExcel } from '../utils/excelExport';
 
 export default function ProjectsView({
   projects = [],
   clients = [],
+  payments = [],
   projectForm,
   setProjectForm,
   saveProject,
@@ -1500,6 +1502,36 @@ export default function ProjectsView({
                   <MenuItem value="conference">Conferences</MenuItem>
                   <MenuItem value="patent">Patents</MenuItem>
                 </TextField>
+
+                <ExcelDateRangeExport
+                  buttonLabel="Download Excel"
+                  dialogTitle="Export Manuscripts & Works (.xlsx)"
+                  items={filteredProjects}
+                  dateExtractor={(p) => p.commitment_date || (p.created_at ? p.created_at.slice(0, 10) : '')}
+                  onExport={({ filteredItems, startDate, endDate, presetLabel }) => {
+                    return exportManuscriptsToExcel(
+                      filteredItems,
+                      {
+                        startDate,
+                        endDate,
+                        presetLabel,
+                        categoryFilter: typeFilter,
+                        searchQuery: search,
+                      },
+                      payments
+                    );
+                  }}
+                  renderSummary={(matched) => {
+                    const journals = matched.filter((p) => p.work_type === 'journal').length;
+                    const conferences = matched.filter((p) => p.work_type === 'conference').length;
+                    const patents = matched.filter((p) => p.work_type === 'patent').length;
+                    return (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.8, fontSize: '0.72rem' }}>
+                        Includes: {journals} Journals · {conferences} Conferences · {patents} Patents
+                      </Typography>
+                    );
+                  }}
+                />
               </Stack>
             </Stack>
 

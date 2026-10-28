@@ -19,6 +19,8 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 import { getInitials, getAvatarColor, formatMoney, formatHumanDate } from '../utils/humanize';
+import ExcelDateRangeExport from '../components/ExcelDateRangeExport';
+import { exportTransactionHistoryToExcel } from '../utils/excelExport';
 
 export default function HistoryView({
   paymentHistory = [],
@@ -259,26 +261,51 @@ export default function HistoryView({
               </Typography>
             </Box>
 
-            <TextField
-              size="small"
-              placeholder="Search receipts & references…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-              sx={{
-                width: { xs: '100%', sm: 260 },
-                flexShrink: 0,
-                '& .MuiInputBase-root': { height: 36, borderRadius: '6px' },
-              }}
-            />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flexShrink: 0 }}>
+              <TextField
+                size="small"
+                placeholder="Search receipts & references…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{
+                  width: { xs: '100%', sm: 260 },
+                  flexShrink: 0,
+                  '& .MuiInputBase-root': { height: 36, borderRadius: '6px' },
+                }}
+              />
+
+              <ExcelDateRangeExport
+                buttonLabel="Download Excel"
+                dialogTitle="Export Transaction History (.xlsx)"
+                items={filteredHistory}
+                dateExtractor={(r) => r.paid_at || r.payment_date || (r.created_at ? r.created_at.slice(0, 10) : '')}
+                onExport={({ filteredItems, startDate, endDate, presetLabel }) => {
+                  return exportTransactionHistoryToExcel(filteredItems, {
+                    startDate,
+                    endDate,
+                    presetLabel,
+                    searchQuery: search,
+                  });
+                }}
+                renderSummary={(matched) => {
+                  const sumCollected = matched.reduce((acc, r) => acc + Number(r.amount_minor || 0), 0);
+                  return (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.8, fontSize: '0.72rem' }}>
+                      Revenue In Scope: {formatMoney(sumCollected)}
+                    </Typography>
+                  );
+                }}
+              />
+            </Stack>
           </Stack>
 
           <Box sx={{ flexGrow: 1, height: { xs: 420, sm: 480, md: 540, lg: 600, xl: 660 }, minHeight: '26rem', width: '100%' }}>

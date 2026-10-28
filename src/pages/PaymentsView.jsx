@@ -40,6 +40,8 @@ import {
   formatRelativeDue,
   calculateProgress,
 } from '../utils/humanize';
+import ExcelDateRangeExport from '../components/ExcelDateRangeExport';
+import { exportInvoicingLedgerToExcel } from '../utils/excelExport';
 
 export default function PaymentsView({
   payments = [],
@@ -635,6 +637,32 @@ export default function PaymentsView({
                 <MenuItem value="pending">Unpaid Balances</MenuItem>
                 <MenuItem value="paid">Fully Settled</MenuItem>
               </TextField>
+
+              <ExcelDateRangeExport
+                buttonLabel="Download Excel"
+                dialogTitle="Export Invoicing & Payment Ledger (.xlsx)"
+                items={filteredPayments}
+                dateExtractor={(p) => p.due_date || (p.created_at ? p.created_at.slice(0, 10) : '')}
+                onExport={({ filteredItems, startDate, endDate, presetLabel }) => {
+                  return exportInvoicingLedgerToExcel(filteredItems, {
+                    startDate,
+                    endDate,
+                    presetLabel,
+                    statusFilter,
+                    searchQuery: search,
+                  });
+                }}
+                renderSummary={(matched) => {
+                  const totalDue = matched.reduce((acc, p) => acc + Number(p.amount_due_minor || 0), 0);
+                  const totalRec = matched.reduce((acc, p) => acc + Number(p.received_minor || 0), 0);
+                  const totalBal = matched.reduce((acc, p) => acc + Number(p.balance_minor || 0), 0);
+                  return (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.8, fontSize: '0.72rem' }}>
+                      Financial Volume: Due: {formatMoney(totalDue)} · Rec: {formatMoney(totalRec)} · Bal: {formatMoney(totalBal)}
+                    </Typography>
+                  );
+                }}
+              />
             </Stack>
           </Stack>
 

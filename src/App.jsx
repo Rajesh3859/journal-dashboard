@@ -15,7 +15,6 @@ import ClientsView from './pages/ClientsView';
 import ProjectsView from './pages/ProjectsView';
 import PaymentsView from './pages/PaymentsView';
 import HistoryView from './pages/HistoryView';
-import AllSectionsView from './pages/AllSectionsView';
 import BackupRestoreView from './pages/BackupRestoreView';
 import { createAuthorRecord } from './utils/security';
 
@@ -275,10 +274,6 @@ const TAB_METADATA = {
   backup: {
     title: 'Backup & Restore Center',
     subtitle: 'Automated weekly snapshots, custom storage locations, and verified workspace recovery',
-  },
-  all: {
-    title: 'Comprehensive Workspace Overview',
-    subtitle: 'Unified single-page view of all research works, collaborators, and financials',
   },
 };
 
@@ -856,7 +851,6 @@ export default function App() {
           {activeTab === 'payments' && <PaymentsView {...commonProps} />}
           {activeTab === 'history' && <HistoryView {...commonProps} />}
           {activeTab === 'backup' && <BackupRestoreView {...commonProps} />}
-          {activeTab === 'all' && <AllSectionsView {...commonProps} />}
         </Box>
       </MainLayout>
 
