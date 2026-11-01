@@ -256,46 +256,43 @@ export default function TradingPurchasesView({
   const totalBalanceSum = totalPurchaseSum - totalPaidSum;
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       {/* KPI Header Bar */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-          gap: 2,
+          gap: 2.5,
         }}
       >
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
               Total Purchases Committed
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
               {formatMoney(totalPurchaseSum)}
             </Typography>
           </CardContent>
         </Card>
 
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
               Total Settled to Sellers
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5, color: 'success.main' }}>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
               {formatMoney(totalPaidSum)}
             </Typography>
           </CardContent>
         </Card>
 
-        <Card sx={{ border: '1px solid', borderColor: totalBalanceSum > 0 ? 'warning.light' : 'divider' }}>
-          <CardContent sx={{ p: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+        <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
               Outstanding Seller Balance
             </Typography>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 800, mt: 0.5, color: totalBalanceSum > 0 ? 'warning.dark' : 'text.primary' }}
-            >
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
               {formatMoney(totalBalanceSum)}
             </Typography>
           </CardContent>
@@ -304,7 +301,7 @@ export default function TradingPurchasesView({
 
       {/* Action & Filter Controls */}
       <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-        <CardContent sx={{ p: 2 }}>
+        <CardContent sx={{ p: 2.5 }}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', md: 'auto' }, flex: 1 }}>
               <TextField
@@ -328,13 +325,6 @@ export default function TradingPurchasesView({
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 sx={{ minWidth: 160 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <FilterListIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
               >
                 <MenuItem value="ALL">All Statuses</MenuItem>
                 <MenuItem value="PENDING">Pending (Unpaid)</MenuItem>
@@ -346,9 +336,8 @@ export default function TradingPurchasesView({
             <Button
               variant="contained"
               color="primary"
-              startIcon={<AddShoppingCartIcon />}
               onClick={handleOpenCreate}
-              sx={{ fontWeight: 700, px: 2.2, whiteSpace: 'nowrap', width: { xs: '100%', md: 'auto' } }}
+              sx={{ fontWeight: 700, px: 2.5, py: 0.9, whiteSpace: 'nowrap', width: { xs: '100%', md: 'auto' } }}
             >
               Add Paper Purchase
             </Button>
@@ -419,7 +408,7 @@ export default function TradingPurchasesView({
                         {formatMoney(p.purchase_price_minor)}
                       </TableCell>
 
-                      <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main', whiteSpace: 'nowrap' }}>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap' }}>
                         {formatMoney(p.amount_paid_minor)}
                       </TableCell>
 
@@ -427,7 +416,7 @@ export default function TradingPurchasesView({
                         align="right"
                         sx={{
                           fontWeight: 700,
-                          color: p.balance_minor > 0 ? 'warning.dark' : 'text.secondary',
+                          color: 'text.primary',
                           whiteSpace: 'nowrap',
                         }}
                       >

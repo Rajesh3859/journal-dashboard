@@ -54,34 +54,29 @@ export default function DashboardView({
     {
       label: 'Active Research Works',
       value: projects.length,
-      icon: <MenuBookIcon color="primary" />,
       sub: `${clients.length} Active ${clients.length === 1 ? 'Collaborator' : 'Collaborators'}`,
       tab: 'projects',
     },
     {
       label: 'Pending Invoiced Fees',
       value: formatMoney(outstandingMinor),
-      icon: <AccountBalanceWalletIcon color="secondary" />,
       sub: `${payments.length} Fee ${payments.length === 1 ? 'Milestone' : 'Milestones'}`,
       tab: 'payments',
     },
     {
       label: 'Due Today',
       value: dueToday.length,
-      icon: <EventBusyIcon color={dueToday.length > 0 ? 'warning' : 'disabled'} />,
       sub: dueToday.length > 0 ? 'Requires follow-up today' : 'All up to date!',
       tab: 'payments',
     },
     {
       label: 'Overdue Accounts',
       value: overdue.length,
-      icon: <WarningAmberIcon color={overdue.length > 0 ? 'error' : 'disabled'} />,
       sub:
         overdue.length > 0
           ? `${formatMoney(overdue.reduce((s, p) => s + p.balance_minor, 0))} overdue`
           : 'Zero overdue balances',
       tab: 'payments',
-      highlight: overdue.length > 0,
     },
   ];
 
@@ -218,7 +213,7 @@ export default function DashboardView({
               <Typography
                 variant="body2"
                 fontWeight={800}
-                color="error.main"
+                color="text.primary"
                 noWrap
                 sx={{ fontSize: '0.8125rem', letterSpacing: '-0.01em', minWidth: 0 }}
               >
@@ -424,7 +419,7 @@ export default function DashboardView({
   ];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5 }, flexGrow: 1, width: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1, width: '100%' }}>
       {/* Actionable Alerts */}
       {overdue.length > 0 && (
         <Alert
@@ -474,7 +469,7 @@ export default function DashboardView({
             sm: 'repeat(2, 1fr)',
             md: 'repeat(4, 1fr)',
           },
-          gap: { xs: 1.5, sm: 2 },
+          gap: 2.5,
         }}
       >
         {summaryStats.map((item) => (
@@ -489,42 +484,27 @@ export default function DashboardView({
               display: 'flex',
               flexDirection: 'column',
               transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-              border: item.highlight ? '1.5px solid' : '1px solid',
-              borderColor: item.highlight ? 'error.main' : 'divider',
+              border: '1px solid',
+              borderColor: 'divider',
               '&:hover': {
                 transform: 'translateY(-2px)',
                 boxShadow: 2,
               },
             }}
           >
-            <CardContent sx={{ p: { xs: 1.5, sm: 2 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ lineHeight: 1.3, wordBreak: 'break-word' }}>
-                    {item.label}
+            <CardContent sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1 }}>
+                  {item.label}
+                </Typography>
+                <Tooltip title={String(item.value)} enterDelay={300}>
+                  <Typography variant="h4" fontWeight={800} noWrap sx={{ letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.value}
                   </Typography>
-                  <Tooltip title={String(item.value)} enterDelay={300}>
-                    <Typography variant="h5" fontWeight={800} noWrap sx={{ mt: 0.8, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.value}
-                    </Typography>
-                  </Tooltip>
-                </Box>
-                <Box
-                  sx={{
-                    p: 1.2,
-                    borderRadius: '7px',
-                    bgcolor: item.highlight ? 'error.light' : 'action.hover',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                </Box>
-              </Stack>
+                </Tooltip>
+              </Box>
               <Tooltip title={item.sub} enterDelay={300}>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', wordBreak: 'break-word', lineHeight: 1.35 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block', lineHeight: 1.35 }}>
                   {item.sub}
                 </Typography>
               </Tooltip>

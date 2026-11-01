@@ -1026,12 +1026,9 @@ export default function ProjectsView({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5 }, flexGrow: 1, width: '100%' }}>
       <Box
         sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: 'clamp(320px, 22rem, 400px) 1fr' },
           display: 'flex',
           flexDirection: { xs: 'column', lg: 'row' },
           gap: { xs: 2, sm: 2.5 },
-          alignItems: 'start',
           alignItems: 'stretch',
           flexGrow: 1,
           width: '100%',
@@ -1039,12 +1036,10 @@ export default function ProjectsView({
           position: 'relative',
         }}
       >
-        {/* Form: Add Project */}
-        <Card variant="outlined" sx={{ borderRadius: '7px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {/* Form: Add Project (Initiate Research Work Right-Side Resizable Panel) */}
-          <Card
-            variant="outlined"
-            sx={{
+        {/* Form: Add Project (Initiate Research Work Right-Side Resizable Panel) */}
+        <Card
+          variant="outlined"
+          sx={{
               borderRadius: '7px',
               height: '100%',
               display: 'flex',
@@ -1111,19 +1106,14 @@ export default function ProjectsView({
               </Box>
             </Box>
             <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 2.2 }, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar sx={{ bgcolor: 'primary.light', width: 36, height: 36 }}>
-                  <PostAddIcon color="primary" fontSize="small" />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" fontWeight={750}>
-                    Initiate Research Work
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Track a manuscript, conference paper, or patent
-                  </Typography>
-                </Box>
-              </Stack>
+              <Box>
+                <Typography variant="h6" fontWeight={750}>
+                  Initiate Research Work
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Track a manuscript, conference paper, or patent
+                </Typography>
+              </Box>
               <Divider sx={{ my: 2 }} />
 
               <Box
@@ -1585,7 +1575,6 @@ export default function ProjectsView({
                     type="submit"
                     variant="contained"
                     disabled={loading || !clients.length}
-                    startIcon={<PostAddIcon />}
                     sx={{ mt: 'auto', height: 40, fontWeight: 750, borderRadius: '7px', textTransform: 'none', fontSize: '0.84rem' }}
                   >
                     Initiate & Save Manuscript
@@ -1596,9 +1585,8 @@ export default function ProjectsView({
           </Card>
 
           {/* MUI X DataGrid: Research Works Directory */}
-          <Card variant="outlined" sx={{ borderRadius: '7px', height: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <Card
-              variant="outlined"
+          <Card
+            variant="outlined"
               sx={{
                 borderRadius: '7px',
                 height: '100%',

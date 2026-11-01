@@ -507,19 +507,14 @@ export default function ClientsView({
         {/* Form: Add Client */}
         <Card variant="outlined" sx={{ borderRadius: '7px', height: '100%', display: 'flex', flexDirection: 'column' }}>
           <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 2.2 }, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            <Stack direction="row" spacing={1.2} alignItems="center">
-              <Avatar sx={{ bgcolor: 'primary.light', width: 32, height: 32 }}>
-                <PersonAddIcon color="primary" sx={{ fontSize: 18 }} />
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle1" fontWeight={750} sx={{ fontSize: '0.95rem' }}>
-                  Register Collaborator
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Add an author, client, or research partner
-                </Typography>
-              </Box>
-            </Stack>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={750} sx={{ fontSize: '0.95rem' }}>
+                Register Collaborator
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                Add an author, client, or research partner
+              </Typography>
+            </Box>
             <Divider sx={{ my: 1.5 }} />
 
             <Box component="form" onSubmit={handleRequestSaveClient} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -573,7 +568,6 @@ export default function ClientsView({
                   type="submit"
                   variant="contained"
                   disabled={loading}
-                  startIcon={<PersonAddIcon />}
                   sx={{ mt: 'auto', py: 1, fontWeight: 700 }}
                 >
                   Save Collaborator

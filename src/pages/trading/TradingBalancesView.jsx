@@ -126,7 +126,7 @@ export default function TradingBalancesView({
   }, [buyerReceivables, searchTerm, statusFilter, sortBy]);
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       {/* Top Tabs Switcher */}
       <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs
@@ -143,16 +143,8 @@ export default function TradingBalancesView({
             },
           }}
         >
-          <Tab
-            icon={<MoneyOffIcon />}
-            iconPosition="start"
-            label={`Seller Payables (${sellerStats.pendingCount} Owed)`}
-          />
-          <Tab
-            icon={<AccountBalanceWalletIcon />}
-            iconPosition="start"
-            label={`Buyer Receivables (${buyerStats.pendingCount} Pending)`}
-          />
+          <Tab label={`Seller Payables (${sellerStats.pendingCount} Owed)`} />
+          <Tab label={`Buyer Receivables (${buyerStats.pendingCount} Pending)`} />
         </Tabs>
       </Card>
 
@@ -162,61 +154,48 @@ export default function TradingBalancesView({
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' },
-            gap: 2,
+            gap: 2.5,
           }}
         >
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                TOTAL PURCHASE VOLUME
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Total Purchase Volume
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 {formatMoney(sellerStats.totalPurchased)}
               </Typography>
             </CardContent>
           </Card>
 
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                TOTAL PAID TO SELLERS
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Total Paid to Sellers
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5, color: 'success.main' }}>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 {formatMoney(sellerStats.totalPaid)}
               </Typography>
             </CardContent>
           </Card>
 
-          <Card
-            sx={{
-              border: '1px solid',
-              borderColor: sellerStats.totalRemaining > 0 ? 'warning.main' : 'divider',
-              bgcolor: sellerStats.totalRemaining > 0 ? 'rgba(245, 158, 11, 0.05)' : 'inherit',
-            }}
-          >
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                TOTAL PAYABLES OWED
+          <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Total Payables Owed
               </Typography>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 800,
-                  mt: 0.5,
-                  color: sellerStats.totalRemaining > 0 ? 'warning.dark' : 'text.primary',
-                }}
-              >
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 {formatMoney(sellerStats.totalRemaining)}
               </Typography>
             </CardContent>
           </Card>
 
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                SELLERS AWAITING DUES
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Sellers Awaiting Dues
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5, color: 'primary.main' }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>
                 {sellerStats.pendingCount} of {sellerPayables.length}
               </Typography>
             </CardContent>
@@ -227,61 +206,48 @@ export default function TradingBalancesView({
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' },
-            gap: 2,
+            gap: 2.5,
           }}
         >
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                TOTAL SALES VOLUME
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Total Sales Volume
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 {formatMoney(buyerStats.totalSold)}
               </Typography>
             </CardContent>
           </Card>
 
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                TOTAL CASH COLLECTED
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Total Cash Collected
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5, color: 'success.main' }}>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 {formatMoney(buyerStats.totalReceived)}
               </Typography>
             </CardContent>
           </Card>
 
-          <Card
-            sx={{
-              border: '1px solid',
-              borderColor: buyerStats.totalRemaining > 0 ? 'error.main' : 'divider',
-              bgcolor: buyerStats.totalRemaining > 0 ? 'rgba(239, 68, 68, 0.05)' : 'inherit',
-            }}
-          >
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                TOTAL OUTSTANDING RECEIVABLES
+          <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Outstanding Receivables
               </Typography>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 800,
-                  mt: 0.5,
-                  color: buyerStats.totalRemaining > 0 ? 'error.main' : 'text.primary',
-                }}
-              >
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 {formatMoney(buyerStats.totalRemaining)}
               </Typography>
             </CardContent>
           </Card>
 
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                BUYERS WITH PENDING DUES
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
+                Buyers with Pending Dues
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.5, color: 'primary.main' }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>
                 {buyerStats.pendingCount} of {buyerReceivables.length}
               </Typography>
             </CardContent>
@@ -400,14 +366,14 @@ export default function TradingBalancesView({
                         <TableCell align="right" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {formatMoney(s.total_purchase_amount_minor)}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main', whiteSpace: 'nowrap' }}>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap' }}>
                           {formatMoney(s.total_amount_paid_minor)}
                         </TableCell>
                         <TableCell
                           align="right"
                           sx={{
                             fontWeight: 800,
-                            color: s.remaining_amount_minor > 0 ? 'warning.dark' : 'text.secondary',
+                            color: 'text.primary',
                             whiteSpace: 'nowrap',
                           }}
                         >
@@ -485,14 +451,14 @@ export default function TradingBalancesView({
                         <TableCell align="right" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {formatMoney(b.total_sales_amount_minor)}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main', whiteSpace: 'nowrap' }}>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap' }}>
                           {formatMoney(b.total_amount_received_minor)}
                         </TableCell>
                         <TableCell
                           align="right"
                           sx={{
                             fontWeight: 800,
-                            color: b.remaining_amount_minor > 0 ? 'error.main' : 'text.secondary',
+                            color: 'text.primary',
                             whiteSpace: 'nowrap',
                           }}
                         >
@@ -508,7 +474,7 @@ export default function TradingBalancesView({
                           <Button
                             size="small"
                             variant="outlined"
-                            color="success"
+                            color="primary"
                             onClick={() => onSelectTab && onSelectTab('trading_sales')}
                             sx={{ fontWeight: 700, fontSize: '0.75rem', py: 0.3 }}
                           >

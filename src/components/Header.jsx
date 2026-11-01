@@ -125,11 +125,11 @@ export default function Header({
                     fontSize: { xs: '0.78rem', sm: '0.84rem' },
                     fontWeight: workspace === 'trading' ? 700 : 500,
                     borderRadius: '6px',
-                    color: workspace === 'trading' ? '#FFFFFF' : 'text.secondary',
-                    bgcolor: workspace === 'trading' ? '#059669' : 'transparent',
-                    boxShadow: workspace === 'trading' ? '0 2px 8px rgba(5, 150, 105, 0.25)' : 'none',
+                    color: workspace === 'trading' ? 'primary.contrastText' : 'text.secondary',
+                    bgcolor: workspace === 'trading' ? 'primary.main' : 'transparent',
+                    boxShadow: workspace === 'trading' ? '0 2px 8px rgba(36, 87, 167, 0.25)' : 'none',
                     '&:hover': {
-                      bgcolor: workspace === 'trading' ? '#047857' : 'action.hover',
+                      bgcolor: workspace === 'trading' ? 'primary.dark' : 'action.hover',
                     },
                   }}
                 >

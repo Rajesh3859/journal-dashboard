@@ -154,14 +154,14 @@ export default function Sidebar({
                       px: 1.5,
                       transition: 'all 0.15s ease',
                       '&.Mui-selected': {
-                        bgcolor: workspace === 'trading' ? 'success.main' : 'primary.main',
+                        bgcolor: 'primary.main',
                         color: '#FFFFFF',
                         fontWeight: 600,
                         '& .MuiListItemIcon-root': {
                           color: '#FFFFFF',
                         },
                         '&:hover': {
-                          bgcolor: workspace === 'trading' ? 'success.dark' : 'primary.dark',
+                          bgcolor: 'primary.dark',
                         },
                       },
                       '&:hover': {
@@ -217,7 +217,7 @@ export default function Sidebar({
       {/* Footer workspace status */}
       <Box sx={{ p: 1.5, m: 1.5, borderRadius: '7px', bgcolor: 'action.hover' }}>
         <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.primary', display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <CircleIcon sx={{ fontSize: 9, color: workspace === 'trading' ? 'success.main' : 'primary.main' }} />
+          <CircleIcon sx={{ fontSize: 9, color: 'primary.main' }} />
           {workspace === 'trading' ? 'Paper Trading' : 'Research Management'}
         </Typography>
       </Box>

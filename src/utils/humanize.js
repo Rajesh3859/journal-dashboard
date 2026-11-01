@@ -19,15 +19,14 @@ export const getInitials = (name = '') => {
 };
 
 const AVATAR_COLORS = [
-  '#2563EB', // Blue
-  '#7C3AED', // Violet
-  '#059669', // Emerald
-  '#D97706', // Amber
-  '#DC2626', // Red
-  '#0891B2', // Cyan
-  '#4F46E5', // Indigo
-  '#9333EA', // Purple
-  '#0D9488', // Teal
+  '#2457A7', // Navy Blue (Primary)
+  '#3B82F6', // Blue Accent
+  '#1D4589', // Deep Cobalt
+  '#475569', // Slate Steel
+  '#1E293B', // Charcoal Slate
+  '#2563EB', // Royal Blue
+  '#334155', // Dark Slate
+  '#5B8DEF', // Soft Blue
 ];
 
 export const getAvatarColor = (name = '') => {
@@ -103,13 +102,13 @@ export const formatWorkType = (workType = 'journal') => {
       return {
         label: 'Conference Paper',
         key: 'conference',
-        color: 'info',
+        color: 'default',
       };
     case 'patent':
       return {
         label: 'Patent Filing',
         key: 'patent',
-        color: 'secondary',
+        color: 'default',
       };
     default:
       return {
@@ -176,12 +175,12 @@ export const formatDateTime = (date = new Date()) => {
 export const formatPaymentStatus = (status = 'Pending') => {
   const norm = String(status || '').toLowerCase().trim();
   if (norm === 'fully paid' || norm === 'paid' || norm === 'completed') {
-    return { label: 'Fully Paid', color: 'success', bg: 'rgba(46, 125, 50, 0.12)' };
+    return { label: 'Fully Paid', color: 'primary', bg: 'rgba(36, 87, 167, 0.1)' };
   }
   if (norm === 'partially paid' || norm === 'partial') {
-    return { label: 'Partially Paid', color: 'warning', bg: 'rgba(237, 108, 2, 0.12)' };
+    return { label: 'Partially Paid', color: 'default', bg: 'rgba(100, 116, 139, 0.1)' };
   }
-  return { label: 'Pending', color: 'error', bg: 'rgba(211, 47, 47, 0.12)' };
+  return { label: 'Pending', color: 'default', bg: 'rgba(100, 116, 139, 0.08)' };
 };
 
 export const formatAuthorsHuman = (raw) => {

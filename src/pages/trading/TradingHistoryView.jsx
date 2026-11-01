@@ -254,14 +254,7 @@ export default function TradingHistoryView({
                 </TableRow>
               ) : (
                 filteredTransactions.map((tx, idx) => {
-                  const typeColor =
-                    tx.type === 'Purchase'
-                      ? 'primary'
-                      : tx.type === 'Sale'
-                      ? 'success'
-                      : tx.type === 'Seller Payment'
-                      ? 'secondary'
-                      : 'info';
+                  const typeColor = tx.type === 'Purchase' || tx.type === 'Sale' ? 'primary' : 'default';
 
                   const isExpense = tx.type === 'Purchase' || tx.type === 'Seller Payment';
 
@@ -307,7 +300,7 @@ export default function TradingHistoryView({
                         sx={{
                           fontWeight: 700,
                           whiteSpace: 'nowrap',
-                          color: isExpense ? 'text.primary' : 'success.main',
+                          color: isExpense ? 'text.primary' : 'primary.main',
                         }}
                       >
                         {isExpense ? '-' : '+'}

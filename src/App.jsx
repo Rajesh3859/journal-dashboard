@@ -38,6 +38,16 @@ const createAppTheme = (mode, fontScale = 1) =>
           light: mode === 'dark' ? '#7CA6F5' : '#4C7AC7',
           dark: mode === 'dark' ? '#1D4589' : '#173A73',
         },
+        secondary: {
+          main: mode === 'dark' ? '#94A3B8' : '#475569',
+          light: mode === 'dark' ? '#CBD5E1' : '#64748B',
+          dark: mode === 'dark' ? '#64748B' : '#334155',
+        },
+        info: {
+          main: mode === 'dark' ? '#5B8DEF' : '#2457A7',
+          light: mode === 'dark' ? '#7CA6F5' : '#4C7AC7',
+          dark: mode === 'dark' ? '#1D4589' : '#173A73',
+        },
         background: {
           default: mode === 'dark' ? '#0B132B' : '#F5F7FB',
           paper: mode === 'dark' ? '#1C2541' : '#FFFFFF',
@@ -104,9 +114,9 @@ const createAppTheme = (mode, fontScale = 1) =>
         MuiCardContent: {
           styleOverrides: {
             root: {
-              padding: '18px',
+              padding: '22px',
               '&:last-child': {
-                paddingBottom: '18px',
+                paddingBottom: '22px',
               },
             },
           },
@@ -1076,7 +1086,7 @@ export default function App() {
         workspace={workspace}
         onToggleWorkspace={handleToggleWorkspace}
       >
-        <Box sx={{ width: '100%', minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', pb: { xs: 2, sm: 2.5 } }}>
+        <Box sx={{ width: '100%', minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', pb: { xs: 3, sm: 4 } }}>
           {/* ================================================================ */}
           {/* 1. RESEARCH MANAGEMENT DASHBOARD VIEWS (Standard Workspace)       */}
           {/* ================================================================ */}

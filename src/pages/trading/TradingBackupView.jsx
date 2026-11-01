@@ -160,7 +160,7 @@ export default function TradingBackupView({
   };
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       {message.text && (
         <Alert severity={message.type} onClose={() => setMessage({ type: '', text: '' })}>
           {message.text}
@@ -168,29 +168,14 @@ export default function TradingBackupView({
       )}
 
       {/* Main Operations: Export & Restore Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
         {/* Export Card */}
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ p: 3 }}>
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '7px',
-                    bgcolor: 'rgba(37, 99, 235, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CloudDownloadIcon color="primary" />
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  Export Trading Backup
-                </Typography>
-              </Box>
+            <Stack spacing={2.5}>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                Export Trading Backup
+              </Typography>
 
               <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: '7px' }}>
                 <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
@@ -217,7 +202,7 @@ export default function TradingBackupView({
                 variant="contained"
                 color="primary"
                 size="large"
-                startIcon={exportLoading ? <CircularProgress size={20} color="inherit" /> : <CloudDownloadIcon />}
+                startIcon={exportLoading ? <CircularProgress size={20} color="inherit" /> : undefined}
                 onClick={handleExport}
                 disabled={exportLoading}
                 sx={{ fontWeight: 700, py: 1.2 }}
@@ -231,25 +216,10 @@ export default function TradingBackupView({
         {/* Restore Card */}
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ p: 3 }}>
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '7px',
-                    bgcolor: 'rgba(5, 150, 105, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CloudUploadIcon color="success" />
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  Restore Trading Backup
-                </Typography>
-              </Box>
+            <Stack spacing={2.5}>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                Restore Trading Backup
+              </Typography>
 
               <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: '7px' }}>
                 <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
@@ -271,9 +241,9 @@ export default function TradingBackupView({
 
               <Button
                 variant="outlined"
-                color="success"
+                color="primary"
                 size="large"
-                startIcon={restoreLoading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
+                startIcon={restoreLoading ? <CircularProgress size={20} color="inherit" /> : undefined}
                 onClick={handleSelectFile}
                 disabled={restoreLoading}
                 sx={{ fontWeight: 700, py: 1.2 }}

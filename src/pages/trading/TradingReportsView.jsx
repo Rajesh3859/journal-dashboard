@@ -49,35 +49,32 @@ export default function TradingReportsView({
   }, [monthlySummary]);
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       {/* 3 Core Financial Pillars */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-          gap: 2.5,
+          gap: 3,
         }}
       >
         {/* Pillar 1: Contract Spread & Profitability */}
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 2.5 }}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-              <TrendingUpIcon color="success" />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Contract Profitability
-              </Typography>
-            </Stack>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
+              Contract Profitability
+            </Typography>
 
             <Typography variant="caption" color="text.secondary">
               GROSS SPREAD PROFIT
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: 'success.main', mb: 1.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main', mb: 2, mt: 0.5 }}>
               {formatMoney(grossProfit)}
             </Typography>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={1}>
+            <Stack spacing={1.5}>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Total Sales Value:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatMoney(totalSalesValue)}</Typography>
@@ -96,13 +93,10 @@ export default function TradingReportsView({
 
         {/* Pillar 2: Realized Cash Position */}
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 2.5 }}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-              <MonetizationOnIcon color="primary" />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Realized Cash Flow
-              </Typography>
-            </Stack>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
+              Realized Cash Flow
+            </Typography>
 
             <Typography variant="caption" color="text.secondary">
               NET CASH POSITION
@@ -111,19 +105,20 @@ export default function TradingReportsView({
               variant="h4"
               sx={{
                 fontWeight: 800,
-                color: netCashPosition >= 0 ? 'primary.main' : 'error.main',
-                mb: 1.5,
+                color: 'primary.main',
+                mb: 2,
+                mt: 0.5,
               }}
             >
               {formatMoney(netCashPosition)}
             </Typography>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={1}>
+            <Stack spacing={1.5}>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Total Cash Received (Inflow):</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>+{formatMoney(totalCashReceived)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>+{formatMoney(totalCashReceived)}</Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Total Cash Paid (Outflow):</Typography>
@@ -141,27 +136,24 @@ export default function TradingReportsView({
 
         {/* Pillar 3: Pending Balances & Working Capital */}
         <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 2.5 }}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-              <AccountBalanceWalletIcon sx={{ color: '#D97706' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Working Capital Pipeline
-              </Typography>
-            </Stack>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
+              Working Capital Pipeline
+            </Typography>
 
             <Typography variant="caption" color="text.secondary">
               OUTSTANDING BUYER RECEIVABLES
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: 'warning.dark', mb: 1.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', mb: 2, mt: 0.5 }}>
               {formatMoney(outstandingBuyerReceivables)}
             </Typography>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={1}>
+            <Stack spacing={1.5}>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Buyer Receivables (To Collect):</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: 'warning.dark' }}>{formatMoney(outstandingBuyerReceivables)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatMoney(outstandingBuyerReceivables)}</Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Seller Payables (To Disburse):</Typography>
@@ -188,15 +180,15 @@ export default function TradingReportsView({
 
             <Stack direction="row" spacing={2} sx={{ mt: { xs: 1, sm: 0 } }}>
               <Stack direction="row" alignItems="center" spacing={0.6}>
-                <Box sx={{ width: 12, height: 12, bgcolor: '#2563EB', borderRadius: '3px' }} />
+                <Box sx={{ width: 12, height: 12, bgcolor: '#2457A7', borderRadius: '3px' }} />
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>Purchases</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.6}>
-                <Box sx={{ width: 12, height: 12, bgcolor: '#059669', borderRadius: '3px' }} />
+                <Box sx={{ width: 12, height: 12, bgcolor: '#475569', borderRadius: '3px' }} />
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>Sales</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.6}>
-                <Box sx={{ width: 12, height: 12, bgcolor: '#10B981', borderRadius: '3px' }} />
+                <Box sx={{ width: 12, height: 12, bgcolor: '#60A5FA', borderRadius: '3px' }} />
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>Gross Profit</Typography>
               </Stack>
             </Stack>
@@ -257,7 +249,7 @@ export default function TradingReportsView({
                         <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
                           Purchases: {formatMoney(m.purchasesValue)} ({m.purchasesCount} bought)
                         </Typography>
-                        <Typography variant="caption" sx={{ display: 'block', color: 'success.main', fontWeight: 700 }}>
+                        <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 700 }}>
                           Gross Profit: {formatMoney(m.grossProfit)}
                         </Typography>
                       </Box>
@@ -270,7 +262,7 @@ export default function TradingReportsView({
                         sx={{
                           width: { xs: 8, sm: 14 },
                           height: `${pHeight}px`,
-                          bgcolor: '#2563EB',
+                          bgcolor: '#2457A7',
                           borderRadius: '3px 3px 0 0',
                           transition: 'height 0.3s ease',
                         }}
@@ -280,7 +272,7 @@ export default function TradingReportsView({
                         sx={{
                           width: { xs: 8, sm: 14 },
                           height: `${sHeight}px`,
-                          bgcolor: '#059669',
+                          bgcolor: '#475569',
                           borderRadius: '3px 3px 0 0',
                           transition: 'height 0.3s ease',
                         }}
@@ -290,7 +282,7 @@ export default function TradingReportsView({
                         sx={{
                           width: { xs: 6, sm: 10 },
                           height: `${profitHeight}px`,
-                          bgcolor: '#10B981',
+                          bgcolor: '#60A5FA',
                           borderRadius: '3px 3px 0 0',
                           transition: 'height 0.3s ease',
                         }}

@@ -49,7 +49,7 @@ export default function MainLayout({
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 1.5, sm: 2, md: 2.5 },
+          p: { xs: 2, sm: 3, md: 3.5 },
           width: { sm: 'calc(100% - var(--app-drawer-width, 240px))' },
           minWidth: 0,
           overflowY: 'auto',
