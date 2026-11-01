@@ -18,6 +18,16 @@ import HistoryView from './pages/HistoryView';
 import BackupRestoreView from './pages/BackupRestoreView';
 import { createAuthorRecord } from './utils/security';
 
+// Research Paper Trading Dashboard Views
+import TradingDashboardView from './pages/trading/TradingDashboardView';
+import TradingPurchasesView from './pages/trading/TradingPurchasesView';
+import TradingSalesView from './pages/trading/TradingSalesView';
+import TradingBalancesView from './pages/trading/TradingBalancesView';
+import TradingReportsView from './pages/trading/TradingReportsView';
+import TradingHistoryView from './pages/trading/TradingHistoryView';
+import TradingBackupView from './pages/trading/TradingBackupView';
+import tradingService from './services/tradingService';
+
 const createAppTheme = (mode, fontScale = 1) =>
   responsiveFontSizes(
     createTheme({
@@ -277,6 +287,37 @@ const TAB_METADATA = {
   },
 };
 
+const TRADING_TAB_METADATA = {
+  trading_dashboard: {
+    title: 'Trading Dashboard',
+    subtitle: '',
+  },
+  trading_purchases: {
+    title: 'Paper Purchases',
+    subtitle: '',
+  },
+  trading_sales: {
+    title: 'Paper Sales',
+    subtitle: '',
+  },
+  trading_balances: {
+    title: 'Payables & Receivables',
+    subtitle: '',
+  },
+  trading_reports: {
+    title: 'Profit & Financials',
+    subtitle: '',
+  },
+  trading_history: {
+    title: 'Transaction History',
+    subtitle: '',
+  },
+  trading_backup: {
+    title: 'Backup & Restore',
+    subtitle: '',
+  },
+};
+
 export default function App() {
   const [mode, setMode] = useState(() => {
     return localStorage.getItem('rm_theme_mode') || 'light';
@@ -289,12 +330,31 @@ export default function App() {
     return !Number.isNaN(parsed) && parsed >= 0.8 && parsed <= 1.4 ? parsed : 1.0;
   });
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Workspace Mode: 'research' (Research Management) or 'trading' (Research Paper Trading)
+  const [workspace, setWorkspace] = useState(() => {
+    return localStorage.getItem('rm_active_workspace') || 'research';
+  });
 
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedWs = localStorage.getItem('rm_active_workspace') || 'research';
+    return savedWs === 'trading' ? 'trading_dashboard' : 'dashboard';
+  });
+
+  // Research Management Data State
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
   const [payments, setPayments] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
+
+  // Research Paper Trading Data State
+  const [tradingPurchases, setTradingPurchases] = useState([]);
+  const [tradingSales, setTradingSales] = useState([]);
+  const [tradingBalances, setTradingBalances] = useState({ sellerPayables: [], buyerReceivables: [] });
+  const [tradingFinancials, setTradingFinancials] = useState({});
+  const [tradingTransactions, setTradingTransactions] = useState([]);
+  const [tradingLoading, setTradingLoading] = useState(false);
+  const [openTradingPurchaseModal, setOpenTradingPurchaseModal] = useState(false);
+  const [openTradingSaleModal, setOpenTradingSaleModal] = useState(false);
 
   const [clientForm, setClientForm] = useState(emptyClient);
   const [projectForm, setProjectForm] = useState(emptyProject);
@@ -477,9 +537,161 @@ export default function App() {
     }
   }
 
+  async function refreshTradingData() {
+    setTradingLoading(true);
+    try {
+      const [purchases, sales, balances, financials, transactions] = await Promise.all([
+        tradingService.listPurchases(),
+        tradingService.listSales(),
+        tradingService.getBalances(),
+        tradingService.getFinancials(),
+        tradingService.getUnifiedTransactions(),
+      ]);
+
+      setTradingPurchases(purchases || []);
+      setTradingSales(sales || []);
+      setTradingBalances(balances || { sellerPayables: [], buyerReceivables: [] });
+      setTradingFinancials(financials || {});
+      setTradingTransactions(transactions || []);
+    } catch (err) {
+      console.error('Failed to load trading records:', err);
+    } finally {
+      setTradingLoading(false);
+    }
+  }
+
   useEffect(() => {
     refreshData().catch((err) => setError(err.message || 'Failed to load records.'));
+    refreshTradingData().catch((err) => console.error('Trading load error:', err));
   }, []);
+
+  const handleToggleWorkspace = (newWorkspace) => {
+    setWorkspace(newWorkspace);
+    localStorage.setItem('rm_active_workspace', newWorkspace);
+    if (newWorkspace === 'trading') {
+      if (!activeTab.startsWith('trading_')) {
+        setActiveTab('trading_dashboard');
+      }
+      refreshTradingData();
+    } else {
+      if (activeTab.startsWith('trading_')) {
+        setActiveTab('dashboard');
+      }
+      refreshData();
+    }
+  };
+
+  // Trading Action Handlers
+  async function runTradingAction(action, successMessage) {
+    setError('');
+    setSuccess('');
+    try {
+      await action();
+      await refreshTradingData();
+      if (successMessage) setSuccess(successMessage);
+    } catch (err) {
+      setError(err.message || 'Trading operation failed.');
+      throw err;
+    }
+  }
+
+  const handleSaveTradingPurchase = async (purchaseData) => {
+    await runTradingAction(async () => {
+      await tradingService.createPurchase(purchaseData);
+    }, 'Paper purchase recorded successfully.');
+  };
+
+  const handleUpdateTradingPurchase = async (purchaseData) => {
+    await runTradingAction(async () => {
+      await tradingService.updatePurchase(purchaseData);
+    }, 'Paper purchase updated successfully.');
+  };
+
+  const handleDeleteTradingPurchase = async (id) => {
+    await runTradingAction(async () => {
+      await tradingService.deletePurchase(id);
+    }, 'Paper purchase deleted successfully.');
+  };
+
+  const handleLoadSellerPayments = async (purchaseId) => {
+    return await tradingService.listSellerPayments(purchaseId);
+  };
+
+  const handleRecordSellerPayment = async (paymentData) => {
+    await runTradingAction(async () => {
+      await tradingService.createSellerPayment(paymentData);
+    }, 'Seller payment recorded successfully.');
+  };
+
+  const handleDeleteSellerPayment = async (id) => {
+    await runTradingAction(async () => {
+      await tradingService.deleteSellerPayment(id);
+    }, 'Seller payment record removed.');
+  };
+
+  const handleUpdateSellerPayment = async (paymentData) => {
+    await runTradingAction(async () => {
+      await tradingService.updateSellerPayment(paymentData);
+    }, 'Seller payment updated successfully.');
+  };
+
+  const handleSaveTradingSale = async (saleData) => {
+    await runTradingAction(async () => {
+      await tradingService.createSale(saleData);
+    }, 'Paper resale recorded successfully.');
+  };
+
+  const handleUpdateTradingSale = async (saleData) => {
+    await runTradingAction(async () => {
+      await tradingService.updateSale(saleData);
+    }, 'Paper resale updated successfully.');
+  };
+
+  const handleDeleteTradingSale = async (id) => {
+    await runTradingAction(async () => {
+      await tradingService.deleteSale(id);
+    }, 'Paper resale record deleted.');
+  };
+
+  const handleLoadBuyerPayments = async (saleId) => {
+    return await tradingService.listBuyerPayments(saleId);
+  };
+
+  const handleRecordBuyerPayment = async (receiptData) => {
+    await runTradingAction(async () => {
+      await tradingService.createBuyerPayment(receiptData);
+    }, 'Buyer installment receipt recorded successfully.');
+  };
+
+  const handleDeleteBuyerPayment = async (id) => {
+    await runTradingAction(async () => {
+      await tradingService.deleteBuyerPayment(id);
+    }, 'Buyer installment record removed.');
+  };
+
+  const handleUpdateBuyerPayment = async (paymentData) => {
+    await runTradingAction(async () => {
+      await tradingService.updateBuyerPayment(paymentData);
+    }, 'Buyer installment updated successfully.');
+  };
+
+  const handleExportTradingBackup = async () => {
+    return await tradingService.exportBackup();
+  };
+
+  const handleSelectTradingRestoreFile = async () => {
+    return await tradingService.selectRestoreFile();
+  };
+
+  const handleRestoreTradingBackup = async (options) => {
+    const res = await tradingService.restoreBackup(options);
+    await refreshTradingData();
+    return res;
+  };
+
+  const handleLoadTradingBackupLogs = async () => {
+    return await tradingService.listBackupLogs();
+  };
 
   async function runAction(action, successMessage) {
     setError('');
@@ -778,7 +990,7 @@ export default function App() {
   const dueToday = activePayments.filter((p) => p.due_state === 'Due today');
   const overdue = activePayments.filter((p) => p.due_state === 'Overdue');
 
-  const counts = {
+  const researchCounts = {
     clients: clients.length,
     projects: projects.length,
     payments: activePayments.length,
@@ -786,9 +998,28 @@ export default function App() {
     history: paymentHistory.length,
   };
 
-  const alertCount = overdue.length + dueToday.length;
+  const researchAlertCount = overdue.length + dueToday.length;
+  const currentResearchTabMeta = TAB_METADATA[activeTab] || TAB_METADATA.dashboard;
 
-  const currentTabMeta = TAB_METADATA[activeTab] || TAB_METADATA.dashboard;
+  // Trading navigation metadata and alert calculations
+  const currentTradingTabMeta = TRADING_TAB_METADATA[activeTab] || TRADING_TAB_METADATA.trading_dashboard;
+  const tradingDueAlerts =
+    (tradingBalances.sellerPayables || []).filter((s) => s.remaining_amount_minor > 0).length +
+    (tradingBalances.buyerReceivables || []).filter((b) => b.remaining_amount_minor > 0).length;
+
+  const tradingCounts = {
+    trading_purchases: tradingPurchases.length,
+    trading_sales: tradingSales.length,
+    trading_balances: (tradingBalances.sellerPayables || []).length + (tradingBalances.buyerReceivables || []).length,
+    trading_due: tradingDueAlerts,
+  };
+
+  const activeHeaderTitle = workspace === 'trading' ? currentTradingTabMeta.title : currentResearchTabMeta.title;
+  const activeHeaderSubtitle = workspace === 'trading' ? currentTradingTabMeta.subtitle : currentResearchTabMeta.subtitle;
+  const activeCounts = workspace === 'trading' ? tradingCounts : researchCounts;
+  const activeAlertCount = workspace === 'trading' ? tradingDueAlerts : researchAlertCount;
+  const activeRefreshFn = workspace === 'trading' ? refreshTradingData : refreshData;
+  const activeLoading = workspace === 'trading' ? tradingLoading : loading;
 
   const commonProps = {
     clients,
@@ -836,21 +1067,127 @@ export default function App() {
         onIncreaseFontSize={handleIncreaseFontSize}
         onDecreaseFontSize={handleDecreaseFontSize}
         onResetFontSize={handleResetFontSize}
-        title={currentTabMeta.title}
-        subtitle={currentTabMeta.subtitle}
-        counts={counts}
-        alertCount={alertCount}
-        onRefresh={refreshData}
-        loading={loading}
+        title={activeHeaderTitle}
+        subtitle={activeHeaderSubtitle}
+        counts={activeCounts}
+        alertCount={activeAlertCount}
+        onRefresh={activeRefreshFn}
+        loading={activeLoading}
+        workspace={workspace}
+        onToggleWorkspace={handleToggleWorkspace}
       >
         <Box sx={{ width: '100%', minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', pb: { xs: 2, sm: 2.5 } }}>
-          {/* Render Active Tab View */}
-          {activeTab === 'dashboard' && <DashboardView {...commonProps} />}
-          {activeTab === 'clients' && <ClientsView {...commonProps} />}
-          {activeTab === 'projects' && <ProjectsView {...commonProps} />}
-          {activeTab === 'payments' && <PaymentsView {...commonProps} />}
-          {activeTab === 'history' && <HistoryView {...commonProps} />}
-          {activeTab === 'backup' && <BackupRestoreView {...commonProps} />}
+          {/* ================================================================ */}
+          {/* 1. RESEARCH MANAGEMENT DASHBOARD VIEWS (Standard Workspace)       */}
+          {/* ================================================================ */}
+          {workspace === 'research' && (
+            <>
+              {activeTab === 'dashboard' && <DashboardView {...commonProps} />}
+              {activeTab === 'clients' && <ClientsView {...commonProps} />}
+              {activeTab === 'projects' && <ProjectsView {...commonProps} />}
+              {activeTab === 'payments' && <PaymentsView {...commonProps} />}
+              {activeTab === 'history' && <HistoryView {...commonProps} />}
+              {activeTab === 'backup' && <BackupRestoreView {...commonProps} />}
+            </>
+          )}
+
+          {/* ================================================================ */}
+          {/* 2. RESEARCH PAPER TRADING DASHBOARD VIEWS (Trading Workspace)    */}
+          {/* ================================================================ */}
+          {workspace === 'trading' && (
+            <>
+              {activeTab === 'trading_dashboard' && (
+                <TradingDashboardView
+                  financials={tradingFinancials}
+                  purchases={tradingPurchases}
+                  sales={tradingSales}
+                  sellerPayables={tradingBalances.sellerPayables}
+                  buyerReceivables={tradingBalances.buyerReceivables}
+                  recentTransactions={tradingTransactions}
+                  onSelectTab={setActiveTab}
+                  onOpenNewPurchase={() => {
+                    setActiveTab('trading_purchases');
+                    setOpenTradingPurchaseModal(true);
+                  }}
+                  onOpenNewSale={() => {
+                    setActiveTab('trading_sales');
+                    setOpenTradingSaleModal(true);
+                  }}
+                />
+              )}
+
+              {activeTab === 'trading_purchases' && (
+                <TradingPurchasesView
+                  purchases={tradingPurchases}
+                  onSavePurchase={handleSaveTradingPurchase}
+                  onUpdatePurchase={handleUpdateTradingPurchase}
+                  onDeletePurchase={handleDeleteTradingPurchase}
+                  onLoadSellerPayments={handleLoadSellerPayments}
+                  onRecordSellerPayment={handleRecordSellerPayment}
+                  onDeleteSellerPayment={handleDeleteSellerPayment}
+                  loading={tradingLoading}
+                  openAddModal={openTradingPurchaseModal}
+                  onCloseAddModal={() => setOpenTradingPurchaseModal(false)}
+                />
+              )}
+
+              {activeTab === 'trading_sales' && (
+                <TradingSalesView
+                  sales={tradingSales}
+                  purchases={tradingPurchases}
+                  onSaveSale={handleSaveTradingSale}
+                  onUpdateSale={handleUpdateTradingSale}
+                  onDeleteSale={handleDeleteTradingSale}
+                  onLoadBuyerPayments={handleLoadBuyerPayments}
+                  onRecordBuyerPayment={handleRecordBuyerPayment}
+                  onDeleteBuyerPayment={handleDeleteBuyerPayment}
+                  loading={tradingLoading}
+                  openAddModal={openTradingSaleModal}
+                  onCloseAddModal={() => setOpenTradingSaleModal(false)}
+                />
+              )}
+
+              {activeTab === 'trading_balances' && (
+                <TradingBalancesView
+                  sellerPayables={tradingBalances.sellerPayables}
+                  buyerReceivables={tradingBalances.buyerReceivables}
+                  onSelectTab={setActiveTab}
+                />
+              )}
+
+              {activeTab === 'trading_reports' && (
+                <TradingReportsView
+                  financials={tradingFinancials}
+                  recentTransactions={tradingTransactions}
+                />
+              )}
+
+              {activeTab === 'trading_history' && (
+                <TradingHistoryView
+                  transactions={tradingTransactions}
+                  onUpdatePurchase={handleUpdateTradingPurchase}
+                  onDeletePurchase={handleDeleteTradingPurchase}
+                  onUpdateSale={handleUpdateTradingSale}
+                  onDeleteSale={handleDeleteTradingSale}
+                  onUpdateSellerPayment={handleUpdateSellerPayment}
+                  onDeleteSellerPayment={handleDeleteSellerPayment}
+                  onUpdateBuyerPayment={handleUpdateBuyerPayment}
+                  onDeleteBuyerPayment={handleDeleteBuyerPayment}
+                  onRefresh={refreshTradingData}
+                />
+              )}
+
+              {activeTab === 'trading_backup' && (
+                <TradingBackupView
+                  onExportBackup={handleExportTradingBackup}
+                  onSelectRestoreFile={handleSelectTradingRestoreFile}
+                  onRestoreBackup={handleRestoreTradingBackup}
+                  onLoadBackupLogs={handleLoadTradingBackupLogs}
+                  onRefreshAllTradingData={refreshTradingData}
+                />
+              )}
+            </>
+          )}
         </Box>
       </MainLayout>
 

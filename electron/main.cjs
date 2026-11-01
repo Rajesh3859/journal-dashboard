@@ -54,6 +54,20 @@ function optionalDate(value, field) {
   return value;
 }
 
+function parseCurrencyToMinor(val) {
+  if (typeof val === "number") {
+    if (!Number.isFinite(val)) return 0;
+    return Math.round(val * 100);
+  }
+  const clean = String(val ?? "").trim().replace(/,/g, "");
+  if (!clean) return 0;
+  const match = clean.match(/^(\d{1,12})(?:\.(\d{1,2}))?$/);
+  if (!match) return 0;
+  const major = Number(match[1]);
+  const minor = Number((match[2] || "").padEnd(2, "0"));
+  return major * 100 + minor;
+}
+
 function secureHashPassword(pwd, saltSeed = '') {
   const salt = saltSeed || crypto.randomBytes(8).toString('hex');
   const hash = crypto.createHash('sha256').update(`${salt}:${pwd}:rm_salt_2026`).digest('hex');
@@ -199,6 +213,84 @@ function initializeDatabase() {
     );
 
     CREATE TABLE IF NOT EXISTS backup_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      backup_type TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_size_bytes INTEGER NOT NULL DEFAULT 0,
+      record_count_summary TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    /* Research Paper Trading Dashboard Tables */
+    CREATE TABLE IF NOT EXISTS trading_purchases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      seller_name TEXT NOT NULL,
+      seller_contact TEXT NOT NULL DEFAULT '',
+      purchase_date TEXT NOT NULL,
+      purchase_price_minor INTEGER NOT NULL DEFAULT 0 CHECK (purchase_price_minor >= 0),
+      notes TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Active',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_trading_purchases_date
+      ON trading_purchases(purchase_date);
+
+    CREATE TABLE IF NOT EXISTS trading_seller_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      purchase_id INTEGER NOT NULL,
+      amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+      payment_date TEXT NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'Bank Transfer',
+      reference TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (purchase_id) REFERENCES trading_purchases(id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_trading_seller_payments_purchase_id
+      ON trading_seller_payments(purchase_id);
+
+    CREATE TABLE IF NOT EXISTS trading_sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      purchase_id INTEGER,
+      title TEXT NOT NULL,
+      buyer_name TEXT NOT NULL,
+      buyer_contact TEXT NOT NULL DEFAULT '',
+      sale_date TEXT NOT NULL,
+      sale_price_minor INTEGER NOT NULL DEFAULT 0 CHECK (sale_price_minor >= 0),
+      cost_price_minor INTEGER NOT NULL DEFAULT 0 CHECK (cost_price_minor >= 0),
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (purchase_id) REFERENCES trading_purchases(id)
+        ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_trading_sales_purchase_id
+      ON trading_sales(purchase_id);
+    CREATE INDEX IF NOT EXISTS idx_trading_sales_date
+      ON trading_sales(sale_date);
+
+    CREATE TABLE IF NOT EXISTS trading_buyer_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id INTEGER NOT NULL,
+      amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+      payment_date TEXT NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'Bank Transfer',
+      reference TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (sale_id) REFERENCES trading_sales(id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_trading_buyer_payments_sale_id
+      ON trading_buyer_payments(sale_id);
+
+    CREATE TABLE IF NOT EXISTS trading_backup_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       backup_type TEXT NOT NULL,
       file_name TEXT NOT NULL,
@@ -1266,6 +1358,806 @@ function registerDatabaseHandlers() {
       return true;
     }
     return false;
+  });
+
+  /* -------------------------------------------------------------
+   * RESEARCH PAPER TRADING DASHBOARD IPC HANDLERS
+   * ----------------------------------------------------------- */
+
+  // Purchases
+  ipcMain.handle("trading:purchases:list", () => {
+    const rows = db.prepare(`
+      SELECT
+        tp.id,
+        tp.title,
+        tp.seller_name,
+        tp.seller_contact,
+        tp.purchase_date,
+        tp.purchase_price_minor,
+        tp.notes,
+        tp.status,
+        tp.created_at,
+        COALESCE(SUM(tsp.amount_minor), 0) AS amount_paid_minor,
+        tp.purchase_price_minor - COALESCE(SUM(tsp.amount_minor), 0) AS balance_minor,
+        COUNT(tsp.id) AS payments_count,
+        MAX(tsp.payment_date) AS last_payment_date,
+        CASE
+          WHEN COALESCE(SUM(tsp.amount_minor), 0) = 0 THEN 'Pending'
+          WHEN COALESCE(SUM(tsp.amount_minor), 0) >= tp.purchase_price_minor THEN 'Fully Paid'
+          ELSE 'Partially Paid'
+        END AS payment_status
+      FROM trading_purchases tp
+      LEFT JOIN trading_seller_payments tsp ON tsp.purchase_id = tp.id
+      GROUP BY tp.id
+      ORDER BY tp.purchase_date DESC, tp.id DESC
+    `).all();
+    return rows;
+  });
+
+  ipcMain.handle("trading:purchases:create", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid purchase data.");
+    const title = validateText(input.title, "Paper title", 300);
+    const sellerName = validateText(input.sellerName || input.seller_name, "Seller name", 200);
+    const sellerContact = optionalText(input.sellerContact || input.seller_contact, 200);
+    const purchaseDate = validateText(input.purchaseDate || input.purchase_date, "Purchase date", 20);
+    const purchasePriceMinor = parseCurrencyToMinor(input.purchasePrice ?? input.purchase_price_minor);
+    if (purchasePriceMinor < 0) throw new Error("Purchase price cannot be negative.");
+    const notes = optionalText(input.notes, 2000);
+    const initialAmountPaidMinor = parseCurrencyToMinor(input.initialAmountPaid ?? 0);
+    const paymentMethod = optionalText(input.paymentMethod || input.payment_method, 100) || "Bank Transfer";
+    const reference = optionalText(input.reference, 200);
+
+    const tx = db.transaction(() => {
+      const res = db.prepare(`
+        INSERT INTO trading_purchases (title, seller_name, seller_contact, purchase_date, purchase_price_minor, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(title, sellerName, sellerContact, purchaseDate, purchasePriceMinor, notes);
+
+      const purchaseId = Number(res.lastInsertRowid);
+
+      if (initialAmountPaidMinor > 0) {
+        db.prepare(`
+          INSERT INTO trading_seller_payments (purchase_id, amount_minor, payment_date, payment_method, reference, notes)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(purchaseId, initialAmountPaidMinor, purchaseDate, paymentMethod, reference, "Initial payment at purchase");
+      }
+
+      return purchaseId;
+    });
+
+    const id = tx();
+    return db.prepare("SELECT * FROM trading_purchases WHERE id = ?").get(id);
+  });
+
+  ipcMain.handle("trading:purchases:update", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid purchase data.");
+    const id = Number(input.id);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid purchase ID.");
+    const title = validateText(input.title, "Paper title", 300);
+    const sellerName = validateText(input.sellerName || input.seller_name, "Seller name", 200);
+    const sellerContact = optionalText(input.sellerContact || input.seller_contact, 200);
+    const purchaseDate = validateText(input.purchaseDate || input.purchase_date, "Purchase date", 20);
+    const purchasePriceMinor = parseCurrencyToMinor(input.purchasePrice ?? input.purchase_price_minor);
+    const notes = optionalText(input.notes, 2000);
+    const status = optionalText(input.status, 50) || "Active";
+
+    db.prepare(`
+      UPDATE trading_purchases
+      SET title = ?, seller_name = ?, seller_contact = ?, purchase_date = ?, purchase_price_minor = ?, notes = ?, status = ?
+      WHERE id = ?
+    `).run(title, sellerName, sellerContact, purchaseDate, purchasePriceMinor, notes, status, id);
+
+    return { id, success: true };
+  });
+
+  ipcMain.handle("trading:purchases:delete", (_event, id) => {
+    const purchaseId = Number(id);
+    if (!Number.isSafeInteger(purchaseId) || purchaseId <= 0) throw new Error("Invalid purchase ID.");
+    const tx = db.transaction(() => {
+      db.prepare("DELETE FROM trading_seller_payments WHERE purchase_id = ?").run(purchaseId);
+      db.prepare("UPDATE trading_sales SET purchase_id = NULL WHERE purchase_id = ?").run(purchaseId);
+      const res = db.prepare("DELETE FROM trading_purchases WHERE id = ?").run(purchaseId);
+      if (res.changes === 0) throw new Error("Purchase record not found.");
+      return { success: true, id: purchaseId };
+    });
+    return tx();
+  });
+
+  // Seller Payments
+  ipcMain.handle("trading:seller-payments:list", (_event, purchaseId) => {
+    if (purchaseId) {
+      return db.prepare(`
+        SELECT tsp.*, tp.title AS paper_title, tp.seller_name
+        FROM trading_seller_payments tsp
+        JOIN trading_purchases tp ON tp.id = tsp.purchase_id
+        WHERE tsp.purchase_id = ?
+        ORDER BY tsp.payment_date DESC, tsp.id DESC
+      `).all(Number(purchaseId));
+    }
+    return db.prepare(`
+      SELECT tsp.*, tp.title AS paper_title, tp.seller_name
+      FROM trading_seller_payments tsp
+      JOIN trading_purchases tp ON tp.id = tsp.purchase_id
+      ORDER BY tsp.payment_date DESC, tsp.id DESC
+    `).all();
+  });
+
+  ipcMain.handle("trading:seller-payments:create", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid payment data.");
+    const purchaseId = Number(input.purchaseId || input.purchase_id);
+    if (!Number.isSafeInteger(purchaseId) || purchaseId <= 0) throw new Error("Select a valid paper purchase.");
+    const amountMinor = parseCurrencyToMinor(input.amount ?? input.amount_minor);
+    if (amountMinor <= 0) throw new Error("Payment amount must be greater than zero.");
+    const paymentDate = validateText(input.paymentDate || input.payment_date, "Payment date", 20);
+    const paymentMethod = optionalText(input.paymentMethod || input.payment_method, 100) || "Bank Transfer";
+    const reference = optionalText(input.reference, 200);
+    const notes = optionalText(input.notes, 1000);
+
+    const res = db.prepare(`
+      INSERT INTO trading_seller_payments (purchase_id, amount_minor, payment_date, payment_method, reference, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(purchaseId, amountMinor, paymentDate, paymentMethod, reference, notes);
+
+    return { id: Number(res.lastInsertRowid), success: true };
+  });
+
+  ipcMain.handle("trading:seller-payments:update", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid payment data.");
+    const id = Number(input.id);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid payment ID.");
+    const amountMinor = parseCurrencyToMinor(input.amount ?? input.amount_minor);
+    if (amountMinor <= 0) throw new Error("Payment amount must be greater than zero.");
+    const paymentDate = validateText(input.paymentDate || input.payment_date, "Payment date", 20);
+    const paymentMethod = optionalText(input.paymentMethod || input.payment_method, 100) || "Bank Transfer";
+    const reference = optionalText(input.reference, 200);
+    const notes = optionalText(input.notes, 1000);
+
+    db.prepare(`
+      UPDATE trading_seller_payments
+      SET amount_minor = ?, payment_date = ?, payment_method = ?, reference = ?, notes = ?
+      WHERE id = ?
+    `).run(amountMinor, paymentDate, paymentMethod, reference, notes, id);
+
+    return { id, success: true };
+  });
+
+  ipcMain.handle("trading:seller-payments:delete", (_event, paymentId) => {
+    const id = Number(paymentId);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid payment ID.");
+    const res = db.prepare("DELETE FROM trading_seller_payments WHERE id = ?").run(id);
+    if (res.changes === 0) throw new Error("Payment record not found.");
+    return { success: true, id };
+  });
+
+  // Sales
+  ipcMain.handle("trading:sales:list", () => {
+    return db.prepare(`
+      SELECT
+        ts.id,
+        ts.purchase_id,
+        ts.title,
+        ts.buyer_name,
+        ts.buyer_contact,
+        ts.sale_date,
+        ts.sale_price_minor,
+        ts.cost_price_minor,
+        ts.sale_price_minor - ts.cost_price_minor AS profit_minor,
+        ts.notes,
+        ts.created_at,
+        tp.title AS original_paper_title,
+        tp.seller_name AS seller_name,
+        COALESCE(SUM(tbp.amount_minor), 0) AS amount_received_minor,
+        ts.sale_price_minor - COALESCE(SUM(tbp.amount_minor), 0) AS balance_minor,
+        COUNT(tbp.id) AS payments_count,
+        MAX(tbp.payment_date) AS last_payment_date,
+        CASE
+          WHEN COALESCE(SUM(tbp.amount_minor), 0) = 0 THEN 'Pending'
+          WHEN COALESCE(SUM(tbp.amount_minor), 0) >= ts.sale_price_minor THEN 'Fully Paid'
+          ELSE 'Partially Paid'
+        END AS payment_status
+      FROM trading_sales ts
+      LEFT JOIN trading_purchases tp ON tp.id = ts.purchase_id
+      LEFT JOIN trading_buyer_payments tbp ON tbp.sale_id = ts.id
+      GROUP BY ts.id
+      ORDER BY ts.sale_date DESC, ts.id DESC
+    `).all();
+  });
+
+  ipcMain.handle("trading:sales:create", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid sale data.");
+    const title = validateText(input.title, "Paper title", 300);
+    const buyerName = validateText(input.buyerName || input.buyer_name, "Buyer name", 200);
+    const buyerContact = optionalText(input.buyerContact || input.buyer_contact, 200);
+    const saleDate = validateText(input.saleDate || input.sale_date, "Sale date", 20);
+    const salePriceMinor = parseCurrencyToMinor(input.salePrice ?? input.sale_price_minor);
+    if (salePriceMinor < 0) throw new Error("Selling price cannot be negative.");
+
+    let purchaseId = input.purchaseId || input.purchase_id ? Number(input.purchaseId || input.purchase_id) : null;
+    let costPriceMinor = parseCurrencyToMinor(input.costPrice ?? input.cost_price_minor);
+
+    if (purchaseId) {
+      const purchase = db.prepare("SELECT * FROM trading_purchases WHERE id = ?").get(purchaseId);
+      if (purchase && input.costPrice == null && input.cost_price_minor == null) {
+        costPriceMinor = purchase.purchase_price_minor;
+      }
+    }
+
+    const notes = optionalText(input.notes, 2000);
+    const initialAmountReceivedMinor = parseCurrencyToMinor(input.initialAmountReceived ?? 0);
+    const paymentMethod = optionalText(input.paymentMethod || input.payment_method, 100) || "Bank Transfer";
+    const reference = optionalText(input.reference, 200);
+
+    const tx = db.transaction(() => {
+      const res = db.prepare(`
+        INSERT INTO trading_sales (purchase_id, title, buyer_name, buyer_contact, sale_date, sale_price_minor, cost_price_minor, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(purchaseId, title, buyerName, buyerContact, saleDate, salePriceMinor, costPriceMinor, notes);
+
+      const saleId = Number(res.lastInsertRowid);
+
+      if (initialAmountReceivedMinor > 0) {
+        db.prepare(`
+          INSERT INTO trading_buyer_payments (sale_id, amount_minor, payment_date, payment_method, reference, notes)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(saleId, initialAmountReceivedMinor, saleDate, paymentMethod, reference, "Initial installment on sale");
+      }
+
+      return saleId;
+    });
+
+    const id = tx();
+    return db.prepare("SELECT * FROM trading_sales WHERE id = ?").get(id);
+  });
+
+  ipcMain.handle("trading:sales:update", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid sale data.");
+    const id = Number(input.id);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid sale ID.");
+    const title = validateText(input.title, "Paper title", 300);
+    const buyerName = validateText(input.buyerName || input.buyer_name, "Buyer name", 200);
+    const buyerContact = optionalText(input.buyerContact || input.buyer_contact, 200);
+    const saleDate = validateText(input.saleDate || input.sale_date, "Sale date", 20);
+    const salePriceMinor = parseCurrencyToMinor(input.salePrice ?? input.sale_price_minor);
+    const costPriceMinor = parseCurrencyToMinor(input.costPrice ?? input.cost_price_minor);
+    const purchaseId = input.purchaseId || input.purchase_id ? Number(input.purchaseId || input.purchase_id) : null;
+    const notes = optionalText(input.notes, 2000);
+
+    db.prepare(`
+      UPDATE trading_sales
+      SET purchase_id = ?, title = ?, buyer_name = ?, buyer_contact = ?, sale_date = ?, sale_price_minor = ?, cost_price_minor = ?, notes = ?
+      WHERE id = ?
+    `).run(purchaseId, title, buyerName, buyerContact, saleDate, salePriceMinor, costPriceMinor, notes, id);
+
+    return { id, success: true };
+  });
+
+  ipcMain.handle("trading:sales:delete", (_event, id) => {
+    const saleId = Number(id);
+    if (!Number.isSafeInteger(saleId) || saleId <= 0) throw new Error("Invalid sale ID.");
+    const tx = db.transaction(() => {
+      db.prepare("DELETE FROM trading_buyer_payments WHERE sale_id = ?").run(saleId);
+      const res = db.prepare("DELETE FROM trading_sales WHERE id = ?").run(saleId);
+      if (res.changes === 0) throw new Error("Sale record not found.");
+      return { success: true, id: saleId };
+    });
+    return tx();
+  });
+
+  // Buyer Payments
+  ipcMain.handle("trading:buyer-payments:list", (_event, saleId) => {
+    if (saleId) {
+      return db.prepare(`
+        SELECT tbp.*, ts.title AS paper_title, ts.buyer_name
+        FROM trading_buyer_payments tbp
+        JOIN trading_sales ts ON ts.id = tbp.sale_id
+        WHERE tbp.sale_id = ?
+        ORDER BY tbp.payment_date DESC, tbp.id DESC
+      `).all(Number(saleId));
+    }
+    return db.prepare(`
+      SELECT tbp.*, ts.title AS paper_title, ts.buyer_name
+      FROM trading_buyer_payments tbp
+      JOIN trading_sales ts ON ts.id = tbp.sale_id
+      ORDER BY tbp.payment_date DESC, tbp.id DESC
+    `).all();
+  });
+
+  ipcMain.handle("trading:buyer-payments:create", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid receipt data.");
+    const saleId = Number(input.saleId || input.sale_id);
+    if (!Number.isSafeInteger(saleId) || saleId <= 0) throw new Error("Select a valid paper sale.");
+    const amountMinor = parseCurrencyToMinor(input.amount ?? input.amount_minor);
+    if (amountMinor <= 0) throw new Error("Receipt amount must be greater than zero.");
+    const paymentDate = validateText(input.paymentDate || input.payment_date, "Payment date", 20);
+    const paymentMethod = optionalText(input.paymentMethod || input.payment_method, 100) || "Bank Transfer";
+    const reference = optionalText(input.reference, 200);
+    const notes = optionalText(input.notes, 1000);
+
+    const res = db.prepare(`
+      INSERT INTO trading_buyer_payments (sale_id, amount_minor, payment_date, payment_method, reference, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(saleId, amountMinor, paymentDate, paymentMethod, reference, notes);
+
+    return { id: Number(res.lastInsertRowid), success: true };
+  });
+
+  ipcMain.handle("trading:buyer-payments:update", (_event, input) => {
+    if (!input || typeof input !== "object") throw new Error("Invalid receipt data.");
+    const id = Number(input.id);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid receipt ID.");
+    const amountMinor = parseCurrencyToMinor(input.amount ?? input.amount_minor);
+    if (amountMinor <= 0) throw new Error("Receipt amount must be greater than zero.");
+    const paymentDate = validateText(input.paymentDate || input.payment_date, "Payment date", 20);
+    const paymentMethod = optionalText(input.paymentMethod || input.payment_method, 100) || "Bank Transfer";
+    const reference = optionalText(input.reference, 200);
+    const notes = optionalText(input.notes, 1000);
+
+    db.prepare(`
+      UPDATE trading_buyer_payments
+      SET amount_minor = ?, payment_date = ?, payment_method = ?, reference = ?, notes = ?
+      WHERE id = ?
+    `).run(amountMinor, paymentDate, paymentMethod, reference, notes, id);
+
+    return { id, success: true };
+  });
+
+  ipcMain.handle("trading:buyer-payments:delete", (_event, paymentId) => {
+    const id = Number(paymentId);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid receipt ID.");
+    const res = db.prepare("DELETE FROM trading_buyer_payments WHERE id = ?").run(id);
+    if (res.changes === 0) throw new Error("Receipt record not found.");
+    return { success: true, id };
+  });
+
+  // Balances: Seller Payables & Buyer Receivables
+  ipcMain.handle("trading:balances:get", () => {
+    const sellerRows = db.prepare(`
+      SELECT
+        tp.seller_name,
+        COUNT(DISTINCT tp.id) AS papers_count,
+        GROUP_CONCAT(tp.title, ' || ') AS papers_list,
+        SUM(tp.purchase_price_minor) AS total_purchase_amount_minor,
+        COALESCE((
+          SELECT SUM(tsp.amount_minor)
+          FROM trading_seller_payments tsp
+          JOIN trading_purchases tp2 ON tp2.id = tsp.purchase_id
+          WHERE tp2.seller_name = tp.seller_name
+        ), 0) AS total_amount_paid_minor,
+        (
+          SELECT MAX(tsp.payment_date)
+          FROM trading_seller_payments tsp
+          JOIN trading_purchases tp2 ON tp2.id = tsp.purchase_id
+          WHERE tp2.seller_name = tp.seller_name
+        ) AS last_payment_date
+      FROM trading_purchases tp
+      GROUP BY tp.seller_name
+      ORDER BY tp.seller_name ASC
+    `).all();
+
+    const sellerPayables = sellerRows.map((s) => {
+      const remaining = s.total_purchase_amount_minor - s.total_amount_paid_minor;
+      let status = "Pending";
+      if (remaining <= 0) {
+        status = "Fully Paid";
+      } else if (s.total_amount_paid_minor > 0) {
+        status = "Partially Paid";
+      }
+      return {
+        ...s,
+        remaining_amount_minor: remaining,
+        payment_status: status
+      };
+    });
+
+    const buyerRows = db.prepare(`
+      SELECT
+        ts.buyer_name,
+        COUNT(DISTINCT ts.id) AS papers_count,
+        GROUP_CONCAT(ts.title, ' || ') AS papers_list,
+        SUM(ts.sale_price_minor) AS total_sales_amount_minor,
+        COALESCE((
+          SELECT SUM(tbp.amount_minor)
+          FROM trading_buyer_payments tbp
+          JOIN trading_sales ts2 ON ts2.id = tbp.sale_id
+          WHERE ts2.buyer_name = ts.buyer_name
+        ), 0) AS total_amount_received_minor,
+        (
+          SELECT MAX(tbp.payment_date)
+          FROM trading_buyer_payments tbp
+          JOIN trading_sales ts2 ON ts2.id = tbp.sale_id
+          WHERE ts2.buyer_name = ts.buyer_name
+        ) AS last_payment_date
+      FROM trading_sales ts
+      GROUP BY ts.buyer_name
+      ORDER BY ts.buyer_name ASC
+    `).all();
+
+    const buyerReceivables = buyerRows.map((b) => {
+      const remaining = b.total_sales_amount_minor - b.total_amount_received_minor;
+      let status = "Pending";
+      if (remaining <= 0) {
+        status = "Fully Paid";
+      } else if (b.total_amount_received_minor > 0) {
+        status = "Partially Paid";
+      }
+      return {
+        ...b,
+        remaining_amount_minor: remaining,
+        payment_status: status
+      };
+    });
+
+    return { sellerPayables, buyerReceivables };
+  });
+
+  // Financial Reports & Analytics
+  ipcMain.handle("trading:reports:getFinancials", () => {
+    const purchaseSum = db.prepare(`SELECT COALESCE(SUM(purchase_price_minor), 0) AS total, COUNT(*) AS count FROM trading_purchases`).get();
+    const salesSum = db.prepare(`SELECT COALESCE(SUM(sale_price_minor), 0) AS total, COALESCE(SUM(cost_price_minor), 0) AS total_cost, COUNT(*) AS count FROM trading_sales`).get();
+    const cashPaidSum = db.prepare(`SELECT COALESCE(SUM(amount_minor), 0) AS total FROM trading_seller_payments`).get();
+    const cashReceivedSum = db.prepare(`SELECT COALESCE(SUM(amount_minor), 0) AS total FROM trading_buyer_payments`).get();
+
+    const totalPurchaseValue = purchaseSum.total;
+    const totalSalesValue = salesSum.total;
+    const grossProfit = totalSalesValue - salesSum.total_cost;
+    const totalCashPaid = cashPaidSum.total;
+    const totalCashReceived = cashReceivedSum.total;
+    const outstandingSellerPayables = totalPurchaseValue - totalCashPaid;
+    const outstandingBuyerReceivables = totalSalesValue - totalCashReceived;
+    const netCashPosition = totalCashReceived - totalCashPaid;
+
+    // Monthly breakdown (last 12 months)
+    const monthlySummary = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleString("en-US", { month: "short", year: "numeric" });
+
+      const pMonth = db.prepare(`SELECT COALESCE(SUM(purchase_price_minor), 0) AS val, COUNT(*) as cnt FROM trading_purchases WHERE purchase_date LIKE ?`).get(`${ym}%`);
+      const sMonth = db.prepare(`SELECT COALESCE(SUM(sale_price_minor), 0) AS val, COALESCE(SUM(cost_price_minor), 0) AS cost, COUNT(*) as cnt FROM trading_sales WHERE sale_date LIKE ?`).get(`${ym}%`);
+      const paidMonth = db.prepare(`SELECT COALESCE(SUM(amount_minor), 0) AS val FROM trading_seller_payments WHERE payment_date LIKE ?`).get(`${ym}%`);
+      const recMonth = db.prepare(`SELECT COALESCE(SUM(amount_minor), 0) AS val FROM trading_buyer_payments WHERE payment_date LIKE ?`).get(`${ym}%`);
+
+      monthlySummary.push({
+        monthKey: ym,
+        label,
+        purchasesCount: pMonth.cnt,
+        salesCount: sMonth.cnt,
+        purchasesValue: pMonth.val,
+        salesValue: sMonth.val,
+        grossProfit: sMonth.val - sMonth.cost,
+        cashPaid: paidMonth.val,
+        cashReceived: recMonth.val,
+        netCashFlow: recMonth.val - paidMonth.val
+      });
+    }
+
+    return {
+      totalPurchaseValue,
+      totalSalesValue,
+      grossProfit,
+      totalCashPaid,
+      totalCashReceived,
+      outstandingSellerPayables,
+      outstandingBuyerReceivables,
+      netCashPosition,
+      papersPurchasedCount: purchaseSum.count,
+      papersSoldCount: salesSum.count,
+      monthlySummary
+    };
+  });
+
+  // Unified Transaction History
+  ipcMain.handle("trading:transactions:unified", () => {
+    const purchases = db.prepare(`
+      SELECT
+        id,
+        'Purchase' AS type,
+        purchase_date AS date,
+        title,
+        seller_name AS party,
+        seller_contact AS party_contact,
+        purchase_price_minor AS amount_minor,
+        status,
+        notes,
+        created_at,
+        '' AS payment_method,
+        '' AS reference,
+        id AS related_id,
+        NULL AS parent_id
+      FROM trading_purchases
+    `).all();
+
+    const sales = db.prepare(`
+      SELECT
+        id,
+        'Sale' AS type,
+        sale_date AS date,
+        title,
+        buyer_name AS party,
+        buyer_contact AS party_contact,
+        sale_price_minor AS amount_minor,
+        'Active' AS status,
+        notes,
+        created_at,
+        '' AS payment_method,
+        '' AS reference,
+        id AS related_id,
+        purchase_id AS parent_id
+      FROM trading_sales
+    `).all();
+
+    const sellerPayments = db.prepare(`
+      SELECT
+        tsp.id,
+        'Seller Payment' AS type,
+        tsp.payment_date AS date,
+        tp.title,
+        tp.seller_name AS party,
+        tp.seller_contact AS party_contact,
+        tsp.amount_minor,
+        'Completed' AS status,
+        tsp.notes,
+        tsp.created_at,
+        tsp.payment_method,
+        tsp.reference,
+        tsp.id AS related_id,
+        tsp.purchase_id AS parent_id
+      FROM trading_seller_payments tsp
+      JOIN trading_purchases tp ON tp.id = tsp.purchase_id
+    `).all();
+
+    const buyerPayments = db.prepare(`
+      SELECT
+        tbp.id,
+        'Buyer Receipt' AS type,
+        tbp.payment_date AS date,
+        ts.title,
+        ts.buyer_name AS party,
+        ts.buyer_contact AS party_contact,
+        tbp.amount_minor,
+        'Completed' AS status,
+        tbp.notes,
+        tbp.created_at,
+        tbp.payment_method,
+        tbp.reference,
+        tbp.id AS related_id,
+        tbp.sale_id AS parent_id
+      FROM trading_buyer_payments tbp
+      JOIN trading_sales ts ON ts.id = tbp.sale_id
+    `).all();
+
+    const all = [...purchases, ...sales, ...sellerPayments, ...buyerPayments];
+    all.sort((a, b) => {
+      const dateCmp = (b.date || "").localeCompare(a.date || "");
+      if (dateCmp !== 0) return dateCmp;
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
+    return all;
+  });
+
+  // Trading Backup & Restore
+  ipcMain.handle("trading:backup:export", async () => {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const defaultName = `ResearchTrading_Backup_${timestamp}.tpbak`;
+
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Export Research Paper Trading Backup",
+      defaultPath: defaultName,
+      filters: [
+        { name: "Trading Paper Backup Archive (*.tpbak, *.json)", extensions: ["tpbak", "json"] },
+        { name: "All Files", extensions: ["*"] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) return null;
+
+    const purchases = db.prepare("SELECT * FROM trading_purchases ORDER BY id ASC").all();
+    const sellerPayments = db.prepare("SELECT * FROM trading_seller_payments ORDER BY id ASC").all();
+    const sales = db.prepare("SELECT * FROM trading_sales ORDER BY id ASC").all();
+    const buyerPayments = db.prepare("SELECT * FROM trading_buyer_payments ORDER BY id ASC").all();
+
+    const backupData = {
+      app: "research-trading",
+      format_version: 1,
+      export_date: now.toISOString(),
+      summary: {
+        purchases: purchases.length,
+        seller_payments: sellerPayments.length,
+        sales: sales.length,
+        buyer_payments: buyerPayments.length,
+        total_records: purchases.length + sellerPayments.length + sales.length + buyerPayments.length
+      },
+      tables: {
+        trading_purchases: purchases,
+        trading_seller_payments: sellerPayments,
+        trading_sales: sales,
+        trading_buyer_payments: buyerPayments
+      }
+    };
+
+    fs.writeFileSync(result.filePath, JSON.stringify(backupData, null, 2), "utf8");
+    const stats = fs.statSync(result.filePath);
+
+    try {
+      db.prepare(`
+        INSERT INTO trading_backup_logs (backup_type, file_name, file_path, file_size_bytes, record_count_summary)
+        VALUES ('manual', ?, ?, ?, ?)
+      `).run(path.basename(result.filePath), result.filePath, stats.size, JSON.stringify(backupData.summary));
+    } catch {}
+
+    return {
+      success: true,
+      filePath: result.filePath,
+      fileName: path.basename(result.filePath),
+      size: stats.size,
+      summary: backupData.summary
+    };
+  });
+
+  ipcMain.handle("trading:backup:select-restore-file", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Select Research Paper Trading Backup File to Restore",
+      filters: [
+        { name: "Trading Paper Backup (*.tpbak, *.json)", extensions: ["tpbak", "json"] },
+        { name: "All Files", extensions: ["*"] }
+      ],
+      properties: ["openFile"]
+    });
+
+    if (result.canceled || !result.filePaths.length) return null;
+
+    const filePath = result.filePaths[0];
+    const content = fs.readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(content);
+
+    if (parsed.app !== "research-trading" && !parsed.tables?.trading_purchases) {
+      throw new Error("The selected file is not a valid Research Paper Trading backup archive.");
+    }
+
+    const previewSummary = parsed.summary || {
+      purchases: (parsed.tables?.trading_purchases || []).length,
+      seller_payments: (parsed.tables?.trading_seller_payments || []).length,
+      sales: (parsed.tables?.trading_sales || []).length,
+      buyer_payments: (parsed.tables?.trading_buyer_payments || []).length
+    };
+
+    return {
+      filePath,
+      fileName: path.basename(filePath),
+      previewSummary
+    };
+  });
+
+  ipcMain.handle("trading:backup:restore", async (_event, { filePath, rawJsonData }) => {
+    let data = null;
+    if (rawJsonData) {
+      data = typeof rawJsonData === "string" ? JSON.parse(rawJsonData) : rawJsonData;
+    } else if (filePath) {
+      const content = fs.readFileSync(filePath, "utf8");
+      data = JSON.parse(content);
+    } else {
+      throw new Error("No backup file or data provided for restore.");
+    }
+
+    if (!data || typeof data !== "object") throw new Error("Invalid backup data format.");
+    if (data.app !== "research-trading" && !data.tables?.trading_purchases) {
+      throw new Error("The provided file is not a valid Research Paper Trading backup.");
+    }
+
+    const tables = data.tables || {};
+    const purchases = Array.isArray(tables.trading_purchases) ? tables.trading_purchases : [];
+    const sellerPayments = Array.isArray(tables.trading_seller_payments) ? tables.trading_seller_payments : [];
+    const sales = Array.isArray(tables.trading_sales) ? tables.trading_sales : [];
+    const buyerPayments = Array.isArray(tables.trading_buyer_payments) ? tables.trading_buyer_payments : [];
+
+    // Safe transaction: restore ONLY trading tables! Research management data is 100% untouched.
+    const restoreTx = db.transaction(() => {
+      db.prepare("DELETE FROM trading_buyer_payments").run();
+      db.prepare("DELETE FROM trading_sales").run();
+      db.prepare("DELETE FROM trading_seller_payments").run();
+      db.prepare("DELETE FROM trading_purchases").run();
+
+      const insPurch = db.prepare(`
+        INSERT INTO trading_purchases (id, title, seller_name, seller_contact, purchase_date, purchase_price_minor, notes, status, created_at)
+        VALUES (@id, @title, @seller_name, @seller_contact, @purchase_date, @purchase_price_minor, @notes, @status, @created_at)
+      `);
+      for (const p of purchases) {
+        insPurch.run({
+          id: p.id,
+          title: p.title || "Untitled Paper",
+          seller_name: p.seller_name || "Unknown Seller",
+          seller_contact: p.seller_contact || "",
+          purchase_date: p.purchase_date || new Date().toISOString().slice(0, 10),
+          purchase_price_minor: p.purchase_price_minor || 0,
+          notes: p.notes || "",
+          status: p.status || "Active",
+          created_at: p.created_at || new Date().toISOString()
+        });
+      }
+
+      const insSellPay = db.prepare(`
+        INSERT INTO trading_seller_payments (id, purchase_id, amount_minor, payment_date, payment_method, reference, notes, created_at)
+        VALUES (@id, @purchase_id, @amount_minor, @payment_date, @payment_method, @reference, @notes, @created_at)
+      `);
+      for (const sp of sellerPayments) {
+        insSellPay.run({
+          id: sp.id,
+          purchase_id: sp.purchase_id,
+          amount_minor: sp.amount_minor || 0,
+          payment_date: sp.payment_date || new Date().toISOString().slice(0, 10),
+          payment_method: sp.payment_method || "Bank Transfer",
+          reference: sp.reference || "",
+          notes: sp.notes || "",
+          created_at: sp.created_at || new Date().toISOString()
+        });
+      }
+
+      const insSale = db.prepare(`
+        INSERT INTO trading_sales (id, purchase_id, title, buyer_name, buyer_contact, sale_date, sale_price_minor, cost_price_minor, notes, created_at)
+        VALUES (@id, @purchase_id, @title, @buyer_name, @buyer_contact, @sale_date, @sale_price_minor, @cost_price_minor, @notes, @created_at)
+      `);
+      for (const s of sales) {
+        insSale.run({
+          id: s.id,
+          purchase_id: s.purchase_id || null,
+          title: s.title || "Untitled Paper",
+          buyer_name: s.buyer_name || "Unknown Buyer",
+          buyer_contact: s.buyer_contact || "",
+          sale_date: s.sale_date || new Date().toISOString().slice(0, 10),
+          sale_price_minor: s.sale_price_minor || 0,
+          cost_price_minor: s.cost_price_minor || 0,
+          notes: s.notes || "",
+          created_at: s.created_at || new Date().toISOString()
+        });
+      }
+
+      const insBuyPay = db.prepare(`
+        INSERT INTO trading_buyer_payments (id, sale_id, amount_minor, payment_date, payment_method, reference, notes, created_at)
+        VALUES (@id, @sale_id, @amount_minor, @payment_date, @payment_method, @reference, @notes, @created_at)
+      `);
+      for (const bp of buyerPayments) {
+        insBuyPay.run({
+          id: bp.id,
+          sale_id: bp.sale_id,
+          amount_minor: bp.amount_minor || 0,
+          payment_date: bp.payment_date || new Date().toISOString().slice(0, 10),
+          payment_method: bp.payment_method || "Bank Transfer",
+          reference: bp.reference || "",
+          notes: bp.notes || "",
+          created_at: bp.created_at || new Date().toISOString()
+        });
+      }
+    });
+
+    restoreTx();
+
+    db.pragma("foreign_key_check");
+    db.pragma("integrity_check");
+
+    return {
+      success: true,
+      counts: {
+        purchases: purchases.length,
+        seller_payments: sellerPayments.length,
+        sales: sales.length,
+        buyer_payments: buyerPayments.length
+      }
+    };
+  });
+
+  ipcMain.handle("trading:backup:list-logs", () => {
+    try {
+      return db.prepare(`SELECT * FROM trading_backup_logs ORDER BY id DESC LIMIT 20`).all().map(r => {
+        let summary = {};
+        try { summary = JSON.parse(r.record_count_summary || "{}"); } catch {}
+        return { ...r, record_count_summary: summary };
+      });
+    } catch {
+      return [];
+    }
   });
 }
 

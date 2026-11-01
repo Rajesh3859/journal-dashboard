@@ -9,6 +9,8 @@ import {
   Avatar,
   Chip,
   Tooltip,
+  Button,
+  Stack,
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -17,6 +19,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import TextIncreaseIcon from '@mui/icons-material/TextIncrease';
 import TextDecreaseIcon from '@mui/icons-material/TextDecrease';
 import FormatSizeIcon from '@mui/icons-material/FormatSize';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 const drawerWidth = 240;
 
@@ -32,6 +36,8 @@ export default function Header({
   alertCount = 0,
   onRefresh,
   loading = false,
+  workspace = 'research',
+  onToggleWorkspace,
 }) {
   return (
     <AppBar
@@ -49,7 +55,8 @@ export default function Header({
       }}
     >
       <Toolbar sx={{ minHeight: { xs: 56, sm: 64 }, px: { xs: 1.5, sm: 2, md: 2.5 }, py: 0.5 }}>
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0, mr: 1.5 }}>
+        {/* Clean Page Title */}
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', minWidth: 0, mr: 1.5 }}>
           <Typography
             variant="h6"
             component="div"
@@ -57,17 +64,86 @@ export default function Header({
             sx={{
               fontWeight: 700,
               lineHeight: 1.25,
-              fontSize: { xs: '1.05rem', sm: '1.15rem', md: '1.25rem' },
+              fontSize: { xs: '1.05rem', sm: '1.18rem', md: '1.25rem' },
             }}
           >
             {title}
           </Typography>
-          {subtitle && (
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ mt: 0.3, fontSize: '0.8rem' }}>
-              {subtitle}
-            </Typography>
-          )}
         </Box>
+
+        {/* Dashboard Switcher Navbar Toggle */}
+        {onToggleWorkspace && (
+          <Box sx={{ mr: { xs: 1, sm: 2 } }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                p: 0.35,
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: (theme) =>
+                  theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+              }}
+            >
+              <Tooltip title="Switch to Research Works, Publications & Client Invoicing Dashboard">
+                <Button
+                  size="small"
+                  onClick={() => onToggleWorkspace('research')}
+                  startIcon={<MenuBookIcon sx={{ fontSize: '1rem !important' }} />}
+                  sx={{
+                    px: { xs: 1, sm: 1.6 },
+                    py: 0.5,
+                    fontSize: { xs: '0.78rem', sm: '0.84rem' },
+                    fontWeight: workspace === 'research' ? 700 : 500,
+                    borderRadius: '6px',
+                    color: workspace === 'research' ? 'primary.contrastText' : 'text.secondary',
+                    bgcolor: workspace === 'research' ? 'primary.main' : 'transparent',
+                    boxShadow: workspace === 'research' ? '0 2px 8px rgba(36, 87, 167, 0.25)' : 'none',
+                    '&:hover': {
+                      bgcolor: workspace === 'research' ? 'primary.dark' : 'action.hover',
+                    },
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                    Research Management
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+                    Research
+                  </Box>
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Switch to Paper Trading (Buying, Selling, Payments & Profit Arbitrage)">
+                <Button
+                  size="small"
+                  onClick={() => onToggleWorkspace('trading')}
+                  startIcon={<TrendingUpIcon sx={{ fontSize: '1.05rem !important' }} />}
+                  sx={{
+                    px: { xs: 1, sm: 1.6 },
+                    py: 0.5,
+                    fontSize: { xs: '0.78rem', sm: '0.84rem' },
+                    fontWeight: workspace === 'trading' ? 700 : 500,
+                    borderRadius: '6px',
+                    color: workspace === 'trading' ? '#FFFFFF' : 'text.secondary',
+                    bgcolor: workspace === 'trading' ? '#059669' : 'transparent',
+                    boxShadow: workspace === 'trading' ? '0 2px 8px rgba(5, 150, 105, 0.25)' : 'none',
+                    '&:hover': {
+                      bgcolor: workspace === 'trading' ? '#047857' : 'action.hover',
+                    },
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                    Paper Trading
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+                    Trading
+                  </Box>
+                </Button>
+              </Tooltip>
+            </Box>
+          </Box>
+        )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', flexShrink: 0 }}>
           {/* Overall App Text Size Scaler */}

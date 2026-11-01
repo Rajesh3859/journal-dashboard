@@ -19,12 +19,15 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SettingsBackupRestoreIcon from '@mui/icons-material/SettingsBackupRestore';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { useTheme } from '@mui/material/styles';
 import CircleIcon from '@mui/icons-material/Circle';
 
 const drawerWidth = 240;
 
-const mainNavItems = [
+const researchNavItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, id: 'dashboard' },
   { text: 'Collaborators', icon: <PeopleIcon />, id: 'clients', countKey: 'clients' },
   { text: 'Research Works', icon: <MenuBookIcon />, id: 'projects', countKey: 'projects' },
@@ -39,9 +42,31 @@ const mainNavItems = [
   { text: 'Backup & Restore', icon: <SettingsBackupRestoreIcon />, id: 'backup' },
 ];
 
-export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
+const tradingNavItems = [
+  { text: 'Trading Overview', icon: <DashboardIcon />, id: 'trading_dashboard' },
+  { text: 'Paper Purchases', icon: <ShoppingBagIcon />, id: 'trading_purchases', countKey: 'trading_purchases' },
+  { text: 'Paper Sales', icon: <PointOfSaleIcon />, id: 'trading_sales', countKey: 'trading_sales' },
+  {
+    text: 'Payables & Receivables',
+    icon: <AccountBalanceWalletIcon />,
+    id: 'trading_balances',
+    countKey: 'trading_balances',
+    alertKey: 'trading_due',
+  },
+  { text: 'Profit & Financials', icon: <TrendingUpIcon />, id: 'trading_reports' },
+  { text: 'Transaction History', icon: <ReceiptLongIcon />, id: 'trading_history' },
+  { text: 'Backup & Restore', icon: <SettingsBackupRestoreIcon />, id: 'trading_backup' },
+];
+
+export default function Sidebar({
+  activeTab,
+  onSelectTab,
+  counts = {},
+  workspace = 'research',
+}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const navItems = workspace === 'trading' ? tradingNavItems : researchNavItems;
 
   return (
     <Drawer
@@ -97,23 +122,23 @@ export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
         <Divider />
 
         <Box sx={{ p: 1.5 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              fontWeight: 700,
-              color: 'text.secondary',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              fontSize: '0.75rem',
-            }}
-          >
-            Navigation
-          </Typography>
+          <Box sx={{ px: 1.5, py: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                fontSize: '0.75rem',
+              }}
+            >
+              {workspace === 'trading' ? 'Trading Navigation' : 'Navigation'}
+            </Typography>
+          </Box>
 
           <List sx={{ pt: 0.5 }}>
-            {mainNavItems.map((item) => {
+            {navItems.map((item) => {
               const count = counts[item.countKey];
               const overdueCount = item.alertKey ? counts[item.alertKey] : 0;
               const isSelected = activeTab === item.id;
@@ -129,14 +154,14 @@ export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
                       px: 1.5,
                       transition: 'all 0.15s ease',
                       '&.Mui-selected': {
-                        bgcolor: 'primary.main',
-                        color: 'primary.contrastText',
+                        bgcolor: workspace === 'trading' ? 'success.main' : 'primary.main',
+                        color: '#FFFFFF',
                         fontWeight: 600,
                         '& .MuiListItemIcon-root': {
-                          color: 'primary.contrastText',
+                          color: '#FFFFFF',
                         },
                         '&:hover': {
-                          bgcolor: 'primary.dark',
+                          bgcolor: workspace === 'trading' ? 'success.dark' : 'primary.dark',
                         },
                       },
                       '&:hover': {
@@ -147,7 +172,7 @@ export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
                     <ListItemIcon
                       sx={{
                         minWidth: 36,
-                        color: isSelected ? 'primary.contrastText' : 'text.secondary',
+                        color: isSelected ? '#FFFFFF' : 'text.secondary',
                       }}
                     >
                       {item.icon}
@@ -175,6 +200,12 @@ export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
                         }}
                       />
                     )}
+
+                    {!overdueCount && count != null && (
+                      <Typography variant="caption" sx={{ color: isSelected ? 'rgba(255,255,255,0.85)' : 'text.secondary', fontWeight: 600 }}>
+                        {count}
+                      </Typography>
+                    )}
                   </ListItemButton>
                 </ListItem>
               );
@@ -185,11 +216,9 @@ export default function Sidebar({ activeTab, onSelectTab, counts = {} }) {
 
       {/* Footer workspace status */}
       <Box sx={{ p: 1.5, m: 1.5, borderRadius: '7px', bgcolor: 'action.hover' }}>
-        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary' }}>
-          Research Management
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2, fontSize: '0.72rem' }}>
-          Workspace Ready
+        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.primary', display: 'flex', alignItems: 'center', gap: 0.8 }}>
+          <CircleIcon sx={{ fontSize: 9, color: workspace === 'trading' ? 'success.main' : 'primary.main' }} />
+          {workspace === 'trading' ? 'Paper Trading' : 'Research Management'}
         </Typography>
       </Box>
     </Drawer>

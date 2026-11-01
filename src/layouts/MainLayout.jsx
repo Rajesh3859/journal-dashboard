@@ -19,6 +19,8 @@ export default function MainLayout({
   alertCount,
   onRefresh,
   loading,
+  workspace = 'research',
+  onToggleWorkspace,
 }) {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -34,8 +36,15 @@ export default function MainLayout({
         alertCount={alertCount}
         onRefresh={onRefresh}
         loading={loading}
+        workspace={workspace}
+        onToggleWorkspace={onToggleWorkspace}
       />
-      <Sidebar activeTab={activeTab} onSelectTab={onSelectTab} counts={counts} />
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={onSelectTab}
+        counts={counts}
+        workspace={workspace}
+      />
       <Box
         component="main"
         sx={{

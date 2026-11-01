@@ -173,6 +173,17 @@ export const formatDateTime = (date = new Date()) => {
   });
 };
 
+export const formatPaymentStatus = (status = 'Pending') => {
+  const norm = String(status || '').toLowerCase().trim();
+  if (norm === 'fully paid' || norm === 'paid' || norm === 'completed') {
+    return { label: 'Fully Paid', color: 'success', bg: 'rgba(46, 125, 50, 0.12)' };
+  }
+  if (norm === 'partially paid' || norm === 'partial') {
+    return { label: 'Partially Paid', color: 'warning', bg: 'rgba(237, 108, 2, 0.12)' };
+  }
+  return { label: 'Pending', color: 'error', bg: 'rgba(211, 47, 47, 0.12)' };
+};
+
 export const formatAuthorsHuman = (raw) => {
   if (!raw) return 'Lead Author Only';
   if (Array.isArray(raw)) {
